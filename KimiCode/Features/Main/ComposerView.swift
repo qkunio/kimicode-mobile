@@ -33,8 +33,9 @@ struct ComposerView: View {
 
     private var currentModel: ModelInfo? { app.model(withID: chat.config.modelID) }
 
+    /// 不做排队：本轮在跑时只能停止，不能再发。
     private var canSend: Bool {
-        !chat.isSending
+        !chat.isBusy
             && (!draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !chat.attachments.isEmpty)
     }
 
@@ -255,7 +256,7 @@ struct ComposerView: View {
 
     @ViewBuilder
     private var sendButton: some View {
-        if chat.isBusy, !canSend {
+        if chat.isBusy {
             Button {
                 Task { await chat.abort() }
             } label: {

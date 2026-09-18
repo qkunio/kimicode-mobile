@@ -57,33 +57,23 @@ private struct ChatContent: View {
     let chat: ChatModel
 
     @State private var draft = ""
+    @State private var ui = TranscriptUIState()
+    @State private var undoTarget: UserEntry?
+    /// 停在底部时新内容自动跟随（官方 isFollowing）；往上翻了就不打扰。
+    @State private var isFollowing = true
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                // 不用 LazyVStack：高度差异大时它估不准，滚到底会落在空白里。
+                // 一页只有 30 轮、折叠的部分本来就不渲染，普通 VStack 足够。
+                VStack(alignment: .leading, spacing: 0) {
                     if chat.isLoading {
-                        ProgressView().frame(maxWidth: .infinity)
+                        ProgressView().frame(maxWidth: .infinity).padding(.bottom, 16)
                     }
 
-                    ForEach(chat.messages) { message in
-                        TranscriptRow(message: message)
-                            .id(message.id)
-                    }
-
-                    ForEach(chat.optimisticPrompts) { prompt in
-                        OptimisticPromptRow(prompt: prompt) {
-                            Task { await chat.retry(prompt) }
-                        } discard: {
-                            chat.discard(prompt)
-                        }
-                    }
-
-                    if chat.isBusy, chat.pendingApprovals.isEmpty {
-                        HStack(spacing: 8) {
-                            ProgressView().controlSize(.small)
-                            Text("正在执行…").font(.footnote).foregroundStyle(.secondary)
-                        }
+                    ConversationList(chat: chat, ui: ui) { entry in
+                        undoTarget = entry
                     }
 
                     Color.clear.frame(height: 1).id(Self.bottomAnchor)
@@ -92,6 +82,14 @@ private struct ChatContent: View {
                 .padding(.vertical, 12)
             }
             .scrollDismissesKeyboard(.interactively)
+            .defaultScrollAnchor(.bottom, for: .initialOffset)
+            .onScrollPhaseChange { _, phase, context in
+                // 只在用户自己滑完之后判断：内容撑高不该把「跟随」关掉。
+                guard phase == .idle else { return }
+                // visibleRect 已经算上了底部 composer 的 inset。
+                let geometry = context.geometry
+                isFollowing = geometry.visibleRect.maxY >= geometry.contentSize.height - 80
+            }
             .contentShape(.rect)
             .simultaneousGesture(
                 TapGesture().onEnded {
@@ -101,14 +99,20 @@ private struct ChatContent: View {
                     )
                 }
             )
-            .onChange(of: chat.messages.count) { scrollToBottom(proxy) }
+            .onChange(of: chat.contentVersion) { if isFollowing { scrollToBottom(proxy, animated: false) } }
             .onChange(of: chat.optimisticPrompts.count) { scrollToBottom(proxy) }
-            .onChange(of: chat.isBusy) { scrollToBottom(proxy) }
         }
         // 用 safeAreaBar 而不是 safeAreaInset：只有前者参与 iOS 26 的滚动边缘效果，
         // 正文滚到 composer 后面时会像导航栏那样渐隐模糊。
         .safeAreaBar(edge: .bottom, spacing: 0) {
             VStack(spacing: 8) {
+                ForEach(chat.pendingQuestions) { question in
+                    QuestionCard(request: question) { answers in
+                        Task { await chat.answer(question, answers: answers) }
+                    } dismiss: {
+                        Task { await chat.dismiss(question) }
+                    }
+                }
                 ForEach(chat.pendingApprovals) { approval in
                     ApprovalCard(approval: approval) { decision in
                         Task { await chat.resolve(approval, decision: decision) }
@@ -130,53 +134,34 @@ private struct ChatContent: View {
         } message: {
             Text(chat.errorMessage ?? "")
         }
+        // 官方撤销前的确认框。
+        .alert(
+            "撤销",
+            isPresented: .init(get: { undoTarget != nil }, set: { if !$0 { undoTarget = nil } }),
+            presenting: undoTarget
+        ) { entry in
+            Button("取消", role: .cancel) {}
+            Button("撤销") { Task { await chat.undo(entry) } }
+        } message: { _ in
+            Text("撤销后，这条消息及之后的会话内容会从上下文中移除，这条消息的原文会放回输入框；已修改的文件和代码不受影响。")
+        }
+        .onChange(of: chat.restoredDraft) { _, text in
+            guard let text else { return }
+            draft = text
+            chat.restoredDraft = nil
+        }
         .refreshable { await chat.reload() }
     }
 
     private static let bottomAnchor = "bottom"
 
-    private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        withAnimation(.easeOut(duration: 0.2)) {
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        if animated {
+            withAnimation(.easeOut(duration: 0.2)) {
+                proxy.scrollTo(Self.bottomAnchor, anchor: .bottom)
+            }
+        } else {
             proxy.scrollTo(Self.bottomAnchor, anchor: .bottom)
-        }
-    }
-}
-
-private struct OptimisticPromptRow: View {
-    let prompt: ChatModel.OptimisticPrompt
-    let retry: () -> Void
-    let discard: () -> Void
-
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 6) {
-            VStack(alignment: .trailing, spacing: 4) {
-                if prompt.attachmentCount > 0 {
-                    Label("\(prompt.attachmentCount) 个附件", systemImage: "paperclip")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if !prompt.text.isEmpty {
-                    Text(prompt.text)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color("AccentColor").opacity(prompt.failed ? 0.12 : 0.22), in: .rect(cornerRadius: 18))
-            .frame(maxWidth: .infinity, alignment: .trailing)
-
-            if prompt.failed {
-                HStack(spacing: 12) {
-                    Label("没发出去", systemImage: "exclamationmark.circle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Button("重试", action: retry).font(.caption)
-                    Button("丢弃", action: discard).font(.caption).foregroundStyle(.secondary)
-                }
-            } else {
-                Label("发送中", systemImage: "arrow.up.circle")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
         }
     }
 }

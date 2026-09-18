@@ -199,243 +199,6 @@ struct SessionList: Decodable, Sendable {
     }
 }
 
-// MARK: - 历史（transcript）
-
-/// `GET /sessions/{id}/history` 返回的 `messages` 是个按 `type` 区分的联合体。
-/// 实测出现过：turn / user / step / thinking / interaction / tool_call / assistant。
-/// 未知 type 保留为 `.unknown`，照常显示一行占位，不让整页解码失败。
-enum HistoryMessage: Decodable, Identifiable, Sendable {
-    case turn(Turn)
-    case user(UserMessage)
-    case assistant(AssistantMessage)
-    case thinking(ThinkingMessage)
-    case toolCall(ToolCall)
-    case interaction(Interaction)
-    case step(Step)
-    case unknown(type: String, timestamp: FlexibleDate?)
-
-    var id: String {
-        switch self {
-        case let .turn(value): "turn:\(value.turnID)"
-        case let .user(value): "user:\(value.messageID)"
-        case let .assistant(value): "assistant:\(value.messageID)"
-        case let .thinking(value): "thinking:\(value.messageID)"
-        case let .toolCall(value): "tool:\(value.toolCallID)"
-        case let .interaction(value): "interaction:\(value.interactionID)"
-        case let .step(value): "step:\(value.stepID)"
-        case let .unknown(type, timestamp):
-            "unknown:\(type):\(timestamp?.date?.timeIntervalSince1970 ?? 0)"
-        }
-    }
-
-    var timestamp: Date? {
-        switch self {
-        case let .turn(value): value.timestamp.date
-        case let .user(value): value.timestamp.date
-        case let .assistant(value): value.timestamp.date
-        case let .thinking(value): value.timestamp.date
-        case let .toolCall(value): value.timestamp.date
-        case let .interaction(value): value.timestamp.date
-        case let .step(value): value.timestamp.date
-        case let .unknown(_, timestamp): timestamp?.date
-        }
-    }
-
-    /// 只在主 agent 的消息里排版；子 agent 的挪到 task 面板（后续里程碑）。
-    var agentID: String? {
-        switch self {
-        case let .turn(value): value.agentID
-        case let .user(value): value.agentID
-        case let .assistant(value): value.agentID
-        case let .thinking(value): value.agentID
-        case let .toolCall(value): value.agentID
-        case let .interaction(value): value.agentID
-        case let .step(value): value.agentID
-        case .unknown: nil
-        }
-    }
-
-    private enum TypeKey: String, CodingKey { case type, timestamp }
-
-    init(from decoder: any Decoder) throws {
-        let peek = try decoder.container(keyedBy: TypeKey.self)
-        let type = try peek.decode(String.self, forKey: .type)
-        switch type {
-        case "turn": self = .turn(try Turn(from: decoder))
-        case "user": self = .user(try UserMessage(from: decoder))
-        case "assistant": self = .assistant(try AssistantMessage(from: decoder))
-        case "thinking": self = .thinking(try ThinkingMessage(from: decoder))
-        case "tool_call": self = .toolCall(try ToolCall(from: decoder))
-        case "interaction": self = .interaction(try Interaction(from: decoder))
-        case "step": self = .step(try Step(from: decoder))
-        default:
-            self = .unknown(type: type, timestamp: try? peek.decode(FlexibleDate.self, forKey: .timestamp))
-        }
-    }
-
-    // MARK: 各分支
-
-    struct Turn: Decodable, Sendable {
-        let turnID: String
-        let agentID: String?
-        let timestamp: FlexibleDate
-        let ordinal: Int?
-        let status: String?
-        let userMessageID: String?
-        let durationMS: Int?
-
-        enum CodingKeys: String, CodingKey {
-            case ordinal, status, timestamp
-            case turnID = "turn_id"
-            case agentID = "agent_id"
-            case userMessageID = "user_message_id"
-            case durationMS = "duration_ms"
-        }
-    }
-
-    struct UserMessage: Decodable, Sendable {
-        let messageID: String
-        let agentID: String?
-        let turnID: String?
-        let timestamp: FlexibleDate
-        let text: [TextPart]?
-
-        /// user.text 是 `[{type:"text", text:"…"}]`。
-        struct TextPart: Decodable, Sendable {
-            let type: String
-            let text: String?
-        }
-
-        var plainText: String {
-            (text ?? []).compactMap(\.text).joined()
-        }
-
-        enum CodingKeys: String, CodingKey {
-            case timestamp, text
-            case messageID = "message_id"
-            case agentID = "agent_id"
-            case turnID = "turn_id"
-        }
-    }
-
-    struct AssistantMessage: Decodable, Sendable {
-        let messageID: String
-        let agentID: String?
-        let turnID: String?
-        let stepID: String?
-        let status: String?
-        let timestamp: FlexibleDate
-        /// 实测是纯字符串（不是 parts 数组）。
-        let text: String?
-
-        enum CodingKeys: String, CodingKey {
-            case status, timestamp, text
-            case messageID = "message_id"
-            case agentID = "agent_id"
-            case turnID = "turn_id"
-            case stepID = "step_id"
-        }
-    }
-
-    struct ThinkingMessage: Decodable, Sendable {
-        let messageID: String
-        let agentID: String?
-        let turnID: String?
-        let timestamp: FlexibleDate
-        let text: String?
-
-        enum CodingKeys: String, CodingKey {
-            case timestamp, text
-            case messageID = "message_id"
-            case agentID = "agent_id"
-            case turnID = "turn_id"
-        }
-    }
-
-    struct ToolCall: Decodable, Sendable {
-        let toolCallID: String
-        let agentID: String?
-        let turnID: String?
-        let stepID: String?
-        let name: String
-        let status: String?
-        let timestamp: FlexibleDate
-        let input: JSONValue?
-        let output: JSONValue?
-
-        enum CodingKeys: String, CodingKey {
-            case name, status, timestamp, input, output
-            case toolCallID = "tool_call_id"
-            case agentID = "agent_id"
-            case turnID = "turn_id"
-            case stepID = "step_id"
-        }
-    }
-
-    struct Interaction: Decodable, Sendable {
-        let interactionID: String
-        let agentID: String?
-        let kind: String?
-        let status: String?
-        let toolCallID: String?
-        let timestamp: FlexibleDate
-        let request: Request?
-        let response: Response?
-
-        struct Request: Decodable, Sendable {
-            let toolName: String?
-            let action: String?
-            let toolInputDisplay: JSONValue?
-
-            enum CodingKeys: String, CodingKey {
-                case action
-                case toolName = "tool_name"
-                case toolInputDisplay = "tool_input_display"
-            }
-        }
-
-        struct Response: Decodable, Sendable {
-            let decision: String?
-            let feedback: String?
-        }
-
-        enum CodingKeys: String, CodingKey {
-            case kind, status, timestamp, request, response
-            case interactionID = "interaction_id"
-            case agentID = "agent_id"
-            case toolCallID = "tool_call_id"
-        }
-    }
-
-    struct Step: Decodable, Sendable {
-        let stepID: String
-        let agentID: String?
-        let turnID: String?
-        let ordinal: Int?
-        let status: String?
-        let finishReason: String?
-        let timestamp: FlexibleDate
-
-        enum CodingKeys: String, CodingKey {
-            case ordinal, status, timestamp
-            case stepID = "step_id"
-            case agentID = "agent_id"
-            case turnID = "turn_id"
-            case finishReason = "finish_reason"
-        }
-    }
-}
-
-struct HistoryPage: Decodable, Sendable {
-    let messages: [HistoryMessage]
-    let hasMore: Bool?
-
-    enum CodingKeys: String, CodingKey {
-        case messages
-        case hasMore = "has_more"
-    }
-}
-
 // MARK: - 权限确认
 
 struct ApprovalRequest: Decodable, Identifiable, Sendable {
@@ -451,27 +214,7 @@ struct ApprovalRequest: Decodable, Identifiable, Sendable {
 
     var id: String { approvalID }
 
-    /// `tool_input_display` 是按 `kind` 分的展示结构，实测有 `command`。
-    var displayKind: String? { toolInputDisplay?["kind"]?.stringValue }
-    var command: String? { toolInputDisplay?["command"]?.stringValue }
-    var cwd: String? { toolInputDisplay?["cwd"]?.stringValue }
-    var descriptionText: String? { toolInputDisplay?["description"]?.stringValue }
-    var filePath: String? {
-        toolInputDisplay?["path"]?.stringValue ?? toolInputDisplay?["file_path"]?.stringValue
-    }
-
-    /// 工具名 → SF Symbol。
-    var symbolName: String {
-        switch toolName.lowercased() {
-        case "bash", "shell": "terminal"
-        case "read": "doc.text"
-        case "edit", "write", "multiedit": "square.and.pencil"
-        case "glob", "grep", "search": "magnifyingglass"
-        case "webfetch", "websearch": "globe"
-        default: "hammer"
-        }
-    }
-
+    /// 按 `kind` 分的展示结构（command / diff / file_io …），卡片里再按官方规则归并。
     enum CodingKeys: String, CodingKey {
         case action
         case approvalID = "approval_id"
@@ -487,6 +230,131 @@ struct ApprovalRequest: Decodable, Identifiable, Sendable {
 
 struct ApprovalList: Decodable, Sendable {
     let items: [ApprovalRequest]
+}
+
+// MARK: - 提问（AskUserQuestion）
+
+struct QuestionRequest: Decodable, Identifiable, Sendable {
+    let questionID: String
+    let sessionID: String?
+    let toolCallID: String?
+    let questions: [Question]
+
+    var id: String { questionID }
+
+    struct Question: Decodable, Identifiable, Sendable {
+        let id: String
+        let question: String
+        let header: String?
+        let body: String?
+        let options: [Option]
+        let multiSelect: Bool
+        let allowOther: Bool
+        let otherLabel: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, question, header, body, options
+            case multiSelect = "multi_select"
+            case allowOther = "allow_other"
+            case otherLabel = "other_label"
+        }
+
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            question = (try? c.decode(String.self, forKey: .question)) ?? ""
+            header = try? c.decodeIfPresent(String.self, forKey: .header)
+            body = try? c.decodeIfPresent(String.self, forKey: .body)
+            options = (try? c.decodeIfPresent([Option].self, forKey: .options)) ?? []
+            multiSelect = (try? c.decodeIfPresent(Bool.self, forKey: .multiSelect)) ?? false
+            allowOther = (try? c.decodeIfPresent(Bool.self, forKey: .allowOther)) ?? false
+            otherLabel = try? c.decodeIfPresent(String.self, forKey: .otherLabel)
+        }
+    }
+
+    struct Option: Decodable, Identifiable, Sendable {
+        let id: String
+        let label: String
+        let description: String?
+        let recommended: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case id, label, description, recommended
+            case isRecommended = "is_recommended"
+        }
+
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            label = (try? c.decode(String.self, forKey: .label)) ?? ""
+            description = try? c.decodeIfPresent(String.self, forKey: .description)
+            let flagged = (try? c.decodeIfPresent(Bool.self, forKey: .recommended)) == true
+                || (try? c.decodeIfPresent(Bool.self, forKey: .isRecommended)) == true
+            // 官方：显式标记，或文案里带「推荐 / recommended」都算推荐项。
+            let text = "\(label) \(description ?? "")".lowercased()
+            recommended = flagged || text.contains("推荐") || text.contains("recommended") || text.contains("recommend")
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case questions
+        case questionID = "question_id"
+        case sessionID = "session_id"
+        case toolCallID = "tool_call_id"
+    }
+}
+
+struct QuestionList: Decodable, Sendable {
+    let items: [QuestionRequest]
+}
+
+/// 每道题的答案，与网页端 `E5e` 同形。
+enum QuestionAnswer: Encodable, Sendable, Equatable {
+    case single(String)
+    case multi([String])
+    case other(String)
+    case multiWithOther([String], String)
+
+    private enum Keys: String, CodingKey {
+        case kind, text
+        case optionID = "option_id"
+        case optionIDs = "option_ids"
+        case otherText = "other_text"
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: Keys.self)
+        switch self {
+        case let .single(id):
+            try c.encode("single", forKey: .kind)
+            try c.encode(id, forKey: .optionID)
+        case let .multi(ids):
+            try c.encode("multi", forKey: .kind)
+            try c.encode(ids, forKey: .optionIDs)
+        case let .other(text):
+            try c.encode("other", forKey: .kind)
+            try c.encode(text, forKey: .text)
+        case let .multiWithOther(ids, text):
+            try c.encode("multi_with_other", forKey: .kind)
+            try c.encode(ids, forKey: .optionIDs)
+            try c.encode(text, forKey: .otherText)
+        }
+    }
+
+    /// 是否已作答（官方 `k(J)`）。
+    var isAnswered: Bool {
+        switch self {
+        case .single: true
+        case let .multi(ids): !ids.isEmpty
+        case let .other(text): !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case let .multiWithOther(ids, text): !ids.isEmpty || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+}
+
+struct QuestionAnswerBody: Encodable, Sendable {
+    let answers: [String: QuestionAnswer]
+    var method = "click"
 }
 
 struct ApprovalDecisionBody: Encodable, Sendable {
@@ -517,6 +385,15 @@ struct ApprovalResolveResult: Decodable, Sendable {
 
 struct PromptBody: Encodable, Sendable {
     let content: [Part]
+    /// 与网页端 `submitPrompt` 一致：每条消息都带上当前的模型 / 思考强度 / 权限模式。
+    var model: String?
+    var thinking: String?
+    var permissionMode: PermissionMode?
+
+    enum CodingKeys: String, CodingKey {
+        case content, model, thinking
+        case permissionMode = "permission_mode"
+    }
 
     enum Part: Encodable, Sendable {
         case text(String)
@@ -552,15 +429,17 @@ struct PromptBody: Encodable, Sendable {
         }
     }
 
-    static func text(_ value: String) -> Self {
-        .init(content: [.text(value)])
-    }
-
     /// 附件在前、文字在后，与网页端一致。
-    static func make(text: String, images: [Data], files: [UploadedFile]) -> Self {
+    static func make(text: String, images: [Data], files: [UploadedFile], config: AgentConfigPatch) -> Self {
         var parts = images.map(Part.jpeg) + files.map(Part.file)
         if !text.isEmpty { parts.append(.text(text)) }
-        return .init(content: parts)
+        // 空串服务端会拒（`thinking: Too small`），没选就不带。
+        return .init(
+            content: parts,
+            model: config.model?.isEmpty == false ? config.model : nil,
+            thinking: config.thinking?.isEmpty == false ? config.thinking : nil,
+            permissionMode: config.permissionMode
+        )
     }
 }
 

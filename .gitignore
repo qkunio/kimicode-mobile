@@ -15,3 +15,6 @@ build/
 credentials/
 .env
 .env.*
+
+# 个人签名（Team ID）
+Config/Local.xcconfig

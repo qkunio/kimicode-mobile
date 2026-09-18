@@ -24,18 +24,19 @@ enum StreamSignal: Sendable {
     case event(SessionEventFrame)
     /// 这些会话的增量续不上了（服务端 `resync_required`，多半是历史被压缩过），必须全量重拉。
     case resyncRequired([String])
+    /// 对话正文的增量（`subscribe_v2` 订阅的 `transcript.reset` / `transcript.ops`）。
+    case transcript(sessionID: String, TranscriptWireEvent)
 }
 
 /// kap-server 的 WebSocket 事件通道。
 ///
-/// 设计取向：**把 WS 当作"有什么变了"的信号，权威状态一律回 REST 拿。**
-/// 事件 payload 是个很大的联合体（`asyncapi.json` 里 `session_event` 的 payload 有 6 万字符），
-/// 把它全部映射成 Swift 类型既脆弱又没必要 —— 没见过的 `type` 会让整条流断掉。
-/// 所以这里只严格解码信封（type/seq/epoch/session_id），payload 原样留着，
-/// 上层按已知 type 走快路径、未知 type 触发一次 REST 刷新。
+/// 两类订阅：
+///   - `subscribe`：会话事件。payload 是个很大的联合体，只严格解码信封（type/seq/epoch/session_id），
+///     上层只拿它当「确认 / 提问有变化」的信号。
+///   - `subscribe_v2`：对话正文（transcript）的逐字增量，`transcript.reset / ops` 单独解码后交给上层应用。
 ///
-/// 游标：每条事件的 `seq`+`epoch` 按会话记下来，重连时在 `client_hello.cursors` 里带回去，
-/// 服务端用 ack 里的 `resync_required` 告诉我们哪些会话接不上。不带游标重连会错序丢消息。
+/// 游标：会话事件按 `seq`+`epoch` 记，重连时放进 `client_hello.cursors`；正文按批次 `seq` 记，
+/// 重连时放进 `transcript_since`，服务端补发缺的 ops，补不上就发 reset。
 actor EventStream {
     private let endpoint: Endpoint
     private let tokenProvider: @Sendable () async -> String?
@@ -51,6 +52,8 @@ actor EventStream {
     /// session_id → 最后看到的 seq/epoch。
     private var cursors: [String: Cursor] = [:]
     private var subscribedSessions: Set<String> = []
+    /// session_id → 已应用到的 transcript 批次序号（`transcript_since`）。nil = 还没拿到过。
+    private var transcriptSubscriptions: [String: Int?] = [:]
     private var messageSeq = 0
     private var reconnectAttempt = 0
     private var isStopped = false
@@ -103,6 +106,35 @@ actor EventStream {
         ])
     }
 
+    /// 订阅对话正文的逐字增量（与网页端 `sendTranscriptSubscribe` 一致：`main` 走 `delta` 级别）。
+    /// `since` 是已经拿到的批次序号：服务端据此补发缺的 ops，补不上就发一个 `transcript.reset`。
+    func subscribeTranscript(_ sessionID: String, since: Int?) async {
+        transcriptSubscriptions[sessionID] = since
+        guard task != nil else { return }
+        await sendTranscriptSubscribe(sessionID)
+    }
+
+    /// 上层应用完一批 ops 后回报序号，重连时用。
+    func noteTranscriptSeq(_ sessionID: String, seq: Int) {
+        guard transcriptSubscriptions[sessionID] != nil else { return }
+        transcriptSubscriptions[sessionID] = seq
+    }
+
+    private func sendTranscriptSubscribe(_ sessionID: String) async {
+        var payload: [String: JSONValue] = [
+            "session_id": .string(sessionID),
+            "transcript": .object(["main": .string("delta")]),
+        ]
+        if let since = transcriptSubscriptions[sessionID] ?? nil {
+            payload["transcript_since"] = .object(["main": .number(Double(since))])
+        }
+        await send([
+            "type": .string("subscribe_v2"),
+            "id": .string(nextMessageID()),
+            "payload": .object(payload),
+        ])
+    }
+
     func unsubscribe(from sessionID: String) async {
         subscribedSessions.remove(sessionID)
         guard task != nil else { return }
@@ -110,15 +142,6 @@ actor EventStream {
             "type": .string("unsubscribe"),
             "id": .string(nextMessageID()),
             "payload": .object(["session_ids": .array([.string(sessionID)])]),
-        ])
-    }
-
-    /// 中断某条会话当前的 turn。
-    func abort(sessionID: String) async {
-        await send([
-            "type": .string("abort"),
-            "id": .string(nextMessageID()),
-            "payload": .object(["session_id": .string(sessionID)]),
         ])
     }
 
@@ -192,6 +215,10 @@ actor EventStream {
                 "cursors": cursorPayload(for: subscribedSessions),
             ]),
         ])
+
+        for sessionID in transcriptSubscriptions.keys {
+            await sendTranscriptSubscribe(sessionID)
+        }
 
         continuation?.yield(.connected(heartbeatMS: heartbeatMS))
         startKeepAlive(intervalMS: heartbeatMS ?? 10_000)
@@ -269,6 +296,23 @@ actor EventStream {
                 ?? frame["session_id"]?.stringValue.map { [$0] }
                 ?? []
             continuation?.yield(.resyncRequired(sessions))
+            return
+
+        case "transcript.reset", "transcript.ops":
+            // 正文增量走专门的解码：payload 里是 camelCase 的 ops，不进通用事件。
+            guard
+                let sessionID = frame["session_id"]?.stringValue,
+                let payload = frame["payload"],
+                let data = try? JSONEncoder().encode(payload)
+            else { return }
+            do {
+                let event = try JSONDecoder().decode(TranscriptWireEvent.self, from: data)
+                continuation?.yield(.transcript(sessionID: sessionID, event))
+            } catch {
+                logger.error("transcript 帧解析失败：\(error.localizedDescription)")
+                // 解不开就当接不上：让上层全量重拉。
+                continuation?.yield(.resyncRequired([sessionID]))
+            }
             return
 
         case "error":

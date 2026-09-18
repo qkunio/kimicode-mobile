@@ -56,7 +56,7 @@ diff/文件卡片、看子 agent 与 task 面板、终端流）。
 | 新对话默认值 | 上次的选择（UserDefaults）；第一次：`auto` + `GET /config` 的 `default_model` + 该模型 `default_effort` | 模型不在 Kimi 订阅组里就退到该组第一个。建会话时显式带全，界面显示 == 真实值 |
 | + 菜单：图片 | prompt 的 `{type:"image", source:{kind:"base64", media_type, data}}` | 长边缩到 1600px JPEG（隧道单请求 10 MiB 上限）；模型无 `image_in` 时禁用 |
 | + 菜单：文件 | 先 multipart `POST /files`（字段 `file`+`name`）→ `{id,name,media_type,size}`，再发 `{type:"file", file_id, name, media_type, size}` | 与网页端 `uploadFile` 同形；选中时读进内存，发送时上传；单文件上限 9 MB |
-| ↑ / ■ | `POST /sessions/{id}/prompts`；停止 `POST /sessions/{id}:abort {}` | 忙时照常 POST，服务端会排队 |
+| ↑ / ■ | `POST /sessions/{id}/prompts`（每条都带 `model / thinking / permission_mode`，与网页端 `submitPrompt` 同形）；停止 `POST /sessions/{id}:abort {}` | **不做排队**：本轮在跑时只显示 ■，不能再发。也不做斜杠命令 |
 
 ---
 
@@ -359,31 +359,44 @@ SIMCTL_CHILD_KIMI_DEBUG_REFRESH_TOKEN="$(python3 -c "import json;print(json.load
 
 ### 已落地的架构决定
 
-- **WS 当信号，REST 当权威。** `session_event` 的 payload 在 asyncapi 里是个 6 万字符的联合体，
-  全映射成 Swift 类型既脆弱又没必要 —— 没见过的 `type` 会让整条流断掉。所以只严格解码信封
-  （type/seq/epoch/session_id），payload 原样留着；已知事件走快路径，未知事件触发一次**去抖**的
-  history 重拉（400ms）。最坏是多刷一次，绝不会卡在旧状态。
+- **对话运行时照搬官方网页端的 transcript 通道。** 正文不走 `/history`：
+  首屏 `GET /sessions/{id}/transcript?agent_id=main&page_size=30`（按轮分页，「加载更早的消息」带 `before_turn`），
+  之后 WS `subscribe_v2 {session_id, transcript:{main:"delta"}, transcript_since:{main:seq}}` 推
+  `transcript.reset / transcript.ops`，本地按开源仓 `packages/transcript/src/ops/apply.ts` 应用（`Core/Transcript.swift`），
+  `append` 的 offset 按 UTF-16 对齐，对不上就全量重拉。逐字流式靠它，不再整段重拉。
+- **视图模型照搬网页端管线**（`Features/Session/ConversationBuilder.swift`）：turn → 用户 / 助手消息（`RE` + `C6`），
+  连续的思考 + 工具 ≥2 个合成一组（`$At`，摘要「读取了 2 个文件 · 运行了 1 条命令」），
+  最后一段正文之前的全部折叠成「已工作 X」（`FAt` / TurnFold），思考时长用客户端计时（`thinkingTiming`，不含等确认的时间）。
+- **运行态全从 transcript 派生**：`meta.activity == "turn"` = 在跑；`meta.agent.phase` 的 `retrying` → 「正在重试（第 n/max 次）」，
+  `interrupted/aborted` 或末轮 `cancelled` → 「已手动终止」分隔线，`max_steps` / `error` / `failed` → 红色失败卡 +「继续」（发「继续」）。
+  确认 / 提问走 REST pending 列表（`/approvals?status=pending`、`/questions?status=pending`），有 `interaction.upsert` 或相关事件时重拉。
+- **确认卡片的类型映射照搬网页端 `PJ`**：`command → shell`、`file_io`（write→file / edit→diff / 其他→fileop）、
+  `url_fetch → url`、`agent_call / skill_call → invocation`、`todo_list → todo`、`plan_review`。
+- **样式对齐官方、字号走我们的系统动态字体**：正文 `.body`，工具行 / 思考 / 折叠头 `.subheadline`，元信息 `.caption`；
+  颜色 token（用户气泡 #f5f5f5 / #292929、面板 3% 底、diff 绿红、Kimi 蓝）在 `MarkdownText.swift` 的 `Palette`。
+- **新建会话不采纳 `agent_config`**（实测建出来 `model:""`、`permission:manual`）：第一条消息发出前不用 `/status` 覆盖 composer 上的选择，
+  空的 model / thinking 不往请求里带（服务端会拒 `thinking: Too small`）。
+- **执行轮数**：`loop_control.max_steps_per_turn` 不设或为 0 都是不限（`maxSteps > 0` 才限制），是电脑上的全局配置，App 不去改。
 - **心跳读 `server_hello`，不硬编码。** 实测服务端给的是 `heartbeat_ms=10000`，不是协议默认的 30s。
 - **游标续传。** 每条非 `volatile` 事件的 `seq`/`epoch` 按会话记下，重连时放进 `client_hello.cursors`，
   并处理 ack 里的 `resync_required`。
-- **发任务一律 `POST /prompts`。** 会话忙时服务端会排队。（早期版本误把文本发给 `prompts:steer`，
+- **发任务一律 `POST /prompts`，不排队。** 忙时 composer 只给停止。（早期版本误把文本发给 `prompts:steer`，
   那个接口收的是 `{prompt_ids}`，已改掉。）
 - **停止走 REST `:abort`，不走 WS `abort`** —— 与网页端一致。
 - **草稿会话。** 在文件夹旁点 + 不会立刻建会话，第一条消息发出时才 `POST /sessions`，
   避免空会话污染侧栏。
-- **乐观发送。** 用户消息先本地显示，失败给"重试/丢弃"，成功后由历史里的真实消息顶替（按文本去重）。
-- **history 只留主 agent**（`agent_id == "main"` 或缺失），子 agent 的留给 task 面板。
+- **乐观发送。** 用户消息先本地显示，失败给"重试/丢弃"，成功后由正文里的真实消息顶替（按文本去重）。
+- **正文只订阅主 agent**（`agent_id=main`），子 agent 的留给 task 面板。
 
 ### 下一步（尚未实现）
 
 1. 子 agent / workflow 的 task 面板（`/sessions/{id}/tasks`）
 2. diff 与文件卡片（`/file-history/changes`、`/file-history/content`）
 3. 终端流（`terminal_attach/input/resize` + `/sessions/{id}/terminals`）
-4. 提问交互（`/sessions/{id}/questions`，`pending_interaction == "question"`）
-5. 新建会话的目录选择（`/fs:browse`、`/workspaces`）
-6. 代码块/表格的专门渲染（现在助手正文只做行内 Markdown）
-7. 待确认时的本地通知（`UNUserNotificationCenter`）、长任务 Live Activity
-8. 图片附件（`/files` 上传 + prompt 的 image part）
+4. 新建会话的目录选择（`/fs:browse`、`/workspaces`）
+5. 待确认时的本地通知（`UNUserNotificationCenter`）、长任务 Live Activity
+6. 对话流里官方有、这版还没搬的：每轮「N 个文件已修改」（`/file-history/changes`）、Agent / Todo / Plan 等专用工具卡、
+   用户消息里的图片缩略图、代码语法高亮
 
 ## 7. 参考位置
 

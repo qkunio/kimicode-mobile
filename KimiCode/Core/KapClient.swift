@@ -74,10 +74,17 @@ struct KapClient: Sendable {
         return try await post("sessions/\(sessionID)/profile", body: Body(agentConfig: agentConfig))
     }
 
-    func history(_ sessionID: String, pageSize: Int = 200, beforeTurn: String? = nil) async throws -> HistoryPage {
-        var query = ["page_size": String(pageSize)]
+    /// 对话正文（与网页端 `getSessionTranscript` 一致，按轮分页，`page_size` 上限 100）。
+    func transcript(_ sessionID: String, pageSize: Int = 30, beforeTurn: String? = nil) async throws -> TranscriptPage {
+        var query = ["agent_id": "main", "page_size": String(pageSize)]
         if let beforeTurn { query["before_turn"] = beforeTurn }
-        return try await get("sessions/\(sessionID)/history", query: query)
+        return try await get("sessions/\(sessionID)/transcript", query: query)
+    }
+
+    /// 撤销最近 `count` 条用户消息及其后的内容（网页端 `undoSession`）。
+    func undo(_ sessionID: String, count: Int) async throws {
+        struct Body: Encodable { let count: Int }
+        let _: JSONValue = try await post("sessions/\(sessionID):undo", body: Body(count: count))
     }
 
     /// 在某个工作区里新建会话。与网页端 `createSession` 同形：`{ metadata:{cwd}, workspace_id, agent_config }`。
@@ -101,8 +108,7 @@ struct KapClient: Sendable {
 
     // MARK: 发任务 / 打断
 
-    /// 发任务。会话忙时服务端会把它排队（`status: "queued"`），与网页端一致。
-    /// 注意 `prompts:steer` 的入参是 `{prompt_ids}`（把已排队的提前插入），不是文本。
+    /// 发任务。App 不做排队：只在空闲时发（忙时 composer 只给「停止」）。
     func sendPrompt(_ body: PromptBody, to sessionID: String) async throws -> PromptAccepted {
         try await post("sessions/\(sessionID)/prompts", body: body)
     }
@@ -159,6 +165,27 @@ struct KapClient: Sendable {
             return result.resolved
         } catch let KapError.api(code, _) where code == KapErrorCode.approvalAlreadyResolved {
             return false
+        }
+    }
+
+    // MARK: 提问（AskUserQuestion）
+
+    func pendingQuestions(_ sessionID: String) async throws -> QuestionList {
+        try await get("sessions/\(sessionID)/questions", query: ["status": "pending"])
+    }
+
+    /// 返回 false 表示已在别处答过。
+    func answer(question questionID: String, in sessionID: String, with body: QuestionAnswerBody) async throws -> Bool {
+        let result: ApprovalResolveResult = try await post("sessions/\(sessionID)/questions/\(questionID)", body: body)
+        return result.resolved
+    }
+
+    func dismiss(question questionID: String, in sessionID: String) async throws {
+        struct Empty: Encodable {}
+        do {
+            let _: JSONValue = try await post("sessions/\(sessionID)/questions/\(questionID):dismiss", body: Empty())
+        } catch let KapError.api(code, _) where code == 40909 {
+            // 已被处理：与网页端 `allowCodes:[40909]` 一致，当成功。
         }
     }
 

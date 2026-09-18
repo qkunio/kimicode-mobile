@@ -1,0 +1,6 @@
+// 签名配置。个人的 DEVELOPMENT_TEAM 写在同目录的 Local.xcconfig（已 gitignore），不进仓库：
+//
+//   DEVELOPMENT_TEAM = XXXXXXXXXX
+//
+// 没有 Local.xcconfig 时模拟器照常构建；上真机前在 Xcode 里选 Team 或建这个文件。
+#include? "Local.xcconfig"
