@@ -65,7 +65,7 @@ final class ChatModel {
 
     private var stream: EventStream?
     private var streamTask: Task<Void, Never>?
-    private var refreshTask: Task<Void, Never>?
+    private let refreshScheduler = RefreshScheduler()
 
     var isDraft: Bool { session == nil }
     var sessionID: String? { session?.id }
@@ -116,7 +116,7 @@ final class ChatModel {
     func stop() {
         streamTask?.cancel()
         streamTask = nil
-        refreshTask?.cancel()
+        refreshScheduler.cancel()
         let stream = stream
         self.stream = nil
         Task { await stream?.stop() }
@@ -149,6 +149,9 @@ final class ChatModel {
             })
             optimisticPrompts.removeAll { !$0.failed && known.contains($0.text) }
         } catch {
+            // 切换会话/停止订阅取消的是读取任务，不代表消息发送失败。
+            guard !Task.isCancelled, !(error is CancellationError),
+                  (error as? URLError)?.code != .cancelled else { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -165,12 +168,9 @@ final class ChatModel {
         )
     }
 
-    /// 去抖的重拉：事件密集时（流式输出）不至于每帧打一次 REST。
+    /// 合并流式事件；已有请求继续执行，其间收到的事件在下一轮补齐。
     private func scheduleRefresh(after delay: Duration = .milliseconds(400)) {
-        refreshTask?.cancel()
-        refreshTask = Task { [weak self] in
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return }
+        refreshScheduler.schedule(after: delay) { [weak self] in
             await self?.reload()
         }
     }

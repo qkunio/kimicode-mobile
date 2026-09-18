@@ -4,8 +4,8 @@ import SwiftUI
 ///   KIMI CODE
 ///   设备 (MAC ▾)
 ///   📁 Folder1                        (+)
-///      ○ Session1
-///      ○ Session2
+///        Session1
+///        Session2
 ///   📁 Folder2                        (+)
 ///   ───────────────────────────────
 ///   (头像) 昵称                    [退出登录]
@@ -13,6 +13,7 @@ struct SidebarView: View {
     let close: () -> Void
 
     @Environment(AppModel.self) private var app
+    @Environment(\.colorScheme) private var colorScheme
     @State private var collapsed: Set<String> = []
     @State private var isConfirmingSignOut = false
 
@@ -34,7 +35,9 @@ struct SidebarView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(
+            Color(colorScheme == .dark ? .secondarySystemBackground : .systemGroupedBackground)
+        )
         .alert("是否退出登录？", isPresented: $isConfirmingSignOut) {
             Button("取消", role: .cancel) {}
             Button("退出", role: .destructive) { app.signOut() }
@@ -135,30 +138,23 @@ struct SidebarView: View {
     // MARK: 文件夹 / 会话
 
     private var folderList: some View {
-        List {
-            // 文件夹也画成普通行而不是 section header：sidebar 样式下 header 里的按钮收不到点击，
-            // 普通行可以。点文件夹名展开/收起，右侧 + 新建会话。
-            ForEach(app.workspaces) { workspace in
-                folderRow(workspace)
-                if !collapsed.contains(workspace.id) {
-                    ForEach(app.sessions(in: workspace)) { session in
-                        sessionRow(session)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(app.workspaces) { workspace in
+                    folderRow(workspace)
+                    if !collapsed.contains(workspace.id) {
+                        ForEach(app.sessions(in: workspace)) { session in
+                            sessionRow(session)
+                        }
                     }
                 }
             }
+            .padding(.horizontal, 6)
+            .padding(.bottom, 16)
         }
-        .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
         .refreshable {
             await app.refreshDevices()
             await app.refreshSidebar()
-        }
-        .overlay {
-            if app.endpoint != nil, app.workspaces.isEmpty {
-                Text("这台电脑上还没有会话")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
         }
     }
 
@@ -173,16 +169,19 @@ struct SidebarView: View {
             Button {
                 toggle(workspace.id)
             } label: {
-                HStack {
-                    Label(workspace.displayName, systemImage: "folder")
-                        .font(.body.weight(.semibold))
+                HStack(spacing: 12) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 20, weight: .regular))
+                        .frame(width: 24)
+                    Text(workspace.displayName)
+                        .font(.body)
                         .foregroundStyle(Color.primary)
                         .lineLimit(1)
                     Spacer(minLength: 4)
                 }
                 .contentShape(.rect)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
             .accessibilityHint(collapsed.contains(workspace.id) ? "展开会话" : "收起会话")
 
             Button {
@@ -191,14 +190,14 @@ struct SidebarView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.subheadline.weight(.semibold))
-                    .frame(width: 28, height: 28)
+                    .frame(width: 44, height: 44)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
             .accessibilityLabel("在 \(workspace.displayName) 新建会话")
         }
-        .padding(.top, 10)
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
+        .padding(.leading, 14)
+        .padding(.top, 12)
+        .frame(minHeight: 52)
     }
 
     private func sessionRow(_ session: SessionSummary) -> some View {
@@ -207,25 +206,34 @@ struct SidebarView: View {
             app.open(session)
             close()
         } label: {
-            HStack(spacing: 10) {
-                SessionStateDot(session: session)
+            HStack(spacing: 8) {
                 Text(session.displayTitle)
+                    .font(.body)
                     .lineLimit(1)
+                    .truncationMode(.tail)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
+                if session.pendingInteraction != .none || session.busy {
+                    SessionStateDot(session: session)
+                }
+            }
+            .padding(.leading, 50)
+            .padding(.trailing, 14)
+            .frame(minHeight: 48)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
+            .background {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isCurrent ? Color(.tertiarySystemFill) : .clear)
             }
         }
-        // 原型里会话是文件夹下的一串圆点条目，不要系统 sidebar 那种白卡片；只有当前会话高亮。
-        .listRowBackground(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isCurrent ? Color.accentColor.opacity(0.14) : .clear)
-                .padding(.horizontal, 8)
-        )
-        .listRowSeparator(.hidden)
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
     }
+
 }
 
-/// 会话前面那个小圆：空闲是空心圈，执行中转圈，待你确认/回答是橙色。
+/// 会话尾部的活动状态：执行中转圈，待确认/回答时显示橙色标记。
 private struct SessionStateDot: View {
     let session: SessionSummary
 

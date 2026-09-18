@@ -80,8 +80,8 @@ private struct SessionInfoPanel: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// 已使用 / 5 小时 / 每月 / 百分比 共用的字号。
-    static let valueFont = Font.footnote.weight(.semibold)
+    /// 已使用 / 5 小时 / 每月 / 百分比，与输入框模型名称使用相同字体。
+    static let valueFont = Font.subheadline.weight(.medium)
 }
 
 private struct SectionTitle: View {

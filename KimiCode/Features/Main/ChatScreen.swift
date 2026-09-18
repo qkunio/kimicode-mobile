@@ -46,18 +46,8 @@ struct ChatScreen: View {
                 }
                 .buttonStyle(.glass)
             }
-        } else if app.workspaces.isEmpty {
-            ContentUnavailableView(
-                "这台电脑上还没有文件夹",
-                systemImage: "folder.badge.questionmark",
-                description: Text("先在电脑上用 Kimi Code 打开一个项目目录。")
-            )
         } else {
-            ContentUnavailableView(
-                "选一个会话",
-                systemImage: "bubble.left.and.text.bubble.right",
-                description: Text("打开侧栏，挑一个会话，或在文件夹旁点 + 新建。")
-            )
+            Color.clear
         }
     }
 }
@@ -102,11 +92,15 @@ private struct ChatContent: View {
                 .padding(.vertical, 12)
             }
             .scrollDismissesKeyboard(.interactively)
-            .overlay {
-                if chat.isDraft, chat.optimisticPrompts.isEmpty {
-                    DraftHint(folder: chat.workspace?.displayName)
+            .contentShape(.rect)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil, from: nil, for: nil
+                    )
                 }
-            }
+            )
             .onChange(of: chat.messages.count) { scrollToBottom(proxy) }
             .onChange(of: chat.optimisticPrompts.count) { scrollToBottom(proxy) }
             .onChange(of: chat.isBusy) { scrollToBottom(proxy) }
@@ -148,27 +142,6 @@ private struct ChatContent: View {
     }
 }
 
-private struct DraftHint: View {
-    let folder: String?
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "folder")
-                .font(.title2)
-                .foregroundStyle(.tertiary)
-            if let folder {
-                Text(folder)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
-            Text("新对话")
-                .font(.footnote)
-                .foregroundStyle(.tertiary)
-        }
-        .allowsHitTesting(false)
-    }
-}
-
 private struct OptimisticPromptRow: View {
     let prompt: ChatModel.OptimisticPrompt
     let retry: () -> Void
@@ -188,7 +161,7 @@ private struct OptimisticPromptRow: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color.accentColor.opacity(prompt.failed ? 0.12 : 0.22), in: .rect(cornerRadius: 18))
+            .background(Color("AccentColor").opacity(prompt.failed ? 0.12 : 0.22), in: .rect(cornerRadius: 18))
             .frame(maxWidth: .infinity, alignment: .trailing)
 
             if prompt.failed {

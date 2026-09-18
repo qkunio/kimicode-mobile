@@ -6,15 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		A1000000000000000000001 /* KimiCode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KimiCode.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A1000000000000000000010 /* KimiCode */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = KimiCode; sourceTree = "<group>"; };
+		A1000000000000000000010 /* KimiCode */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KimiCode;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -241,20 +242,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A1000000000000000000061 /* Build configuration list for PBXProject "KimiCode" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A1000000000000000000070 /* Debug */,
-				A1000000000000000000071 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		A1000000000000000000050 /* Build configuration list for PBXNativeTarget "KimiCode" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1000000000000000000080 /* Debug */,
 				A1000000000000000000081 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000061 /* Build configuration list for PBXProject "KimiCode" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000070 /* Debug */,
+				A1000000000000000000071 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

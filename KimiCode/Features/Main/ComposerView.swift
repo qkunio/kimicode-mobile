@@ -14,10 +14,19 @@ struct ComposerView: View {
 
     @Environment(AppModel.self) private var app
     @FocusState private var isFocused: Bool
+    @State private var inputCardHeight: CGFloat = 96
     @State private var pickedPhotos: [PhotosPickerItem] = []
     @State private var isPickingPhotos = false
     @State private var isPickingFiles = false
     @State private var attachmentError: String?
+    @State private var activePanel: ComposerPanel?
+    @State private var pendingAttachment: AttachmentSource?
+
+    private enum ComposerPanel: String, Identifiable {
+        case model, attachment
+        var id: String { rawValue }
+    }
+    private enum AttachmentSource { case photo, file }
 
     /// 隧道单请求上限 10 MiB，multipart 再加点开销，文件卡在 9 MB。
     private static let maxFileBytes = 9 * 1024 * 1024
@@ -30,6 +39,26 @@ struct ComposerView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            if isFocused {
+                Color.clear
+                    .frame(height: inputCardHeight / 5)
+                    .contentShape(.rect)
+                    .gesture(
+                        DragGesture(minimumDistance: 12)
+                            .onEnded { value in
+                                guard value.translation.height > 12,
+                                      value.translation.height > abs(value.translation.width) * 1.5 else { return }
+                                isFocused = false
+                            }
+                    )
+                    .accessibilityHidden(true)
+            }
+            inputCard
+        }
+    }
+
+    private var inputCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !chat.attachments.isEmpty {
                 AttachmentStrip(chat: chat)
@@ -39,17 +68,54 @@ struct ComposerView: View {
                 .lineLimit(1 ... 6)
                 .focused($isFocused)
                 .padding(.horizontal, 4)
+                .padding(.top, 8)
 
             HStack(spacing: 6) {
                 attachButton
                 permissionMenu
-                modelMenu
                 Spacer(minLength: 0)
+                modelMenu
+                    .padding(.trailing, 12)
                 sendButton
             }
         }
         .padding(12)
+        .background {
+            // 只接收内容之间的空白点击，前景按钮继续独立处理自己的操作。
+            Color.clear
+                .contentShape(.rect(cornerRadius: 26))
+                .onTapGesture { isFocused = true }
+        }
         .glassEffect(in: .rect(cornerRadius: 26))
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.height
+        } action: { height in
+            inputCardHeight = height
+        }
+        .sheet(item: $activePanel, onDismiss: {
+            guard let source = pendingAttachment else { return }
+            pendingAttachment = nil
+            switch source {
+            case .photo: isPickingPhotos = true
+            case .file: isPickingFiles = true
+            }
+        }) { panel in
+            switch panel {
+            case .model:
+                ModelSelectionPanel(models: app.models, config: chat.config) { model, effort in
+                    Task { await chat.setModel(model, effort: effort) }
+                    activePanel = nil
+                }
+                .presentationDetents([.fraction(0.75), .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(32)
+            case .attachment:
+                attachmentPanel
+                    .presentationDetents([.height(230)])
+                    .presentationDragIndicator(.visible)
+                    .presentationCornerRadius(32)
+            }
+        }
         .photosPicker(
             isPresented: $isPickingPhotos,
             selection: $pickedPhotos,
@@ -81,19 +147,9 @@ struct ComposerView: View {
     // MARK: 按钮们
 
     private var attachButton: some View {
-        Menu {
-            Button {
-                isPickingPhotos = true
-            } label: {
-                Label("图片", systemImage: "photo.on.rectangle")
-            }
-            .disabled(currentModel.map { !$0.acceptsImages } ?? false)
-
-            Button {
-                isPickingFiles = true
-            } label: {
-                Label("文件", systemImage: "doc")
-            }
+        Button {
+            isFocused = false
+            activePanel = .attachment
         } label: {
             Image(systemName: "plus")
                 .font(.body.weight(.medium))
@@ -139,38 +195,9 @@ struct ComposerView: View {
     }
 
     private var modelMenu: some View {
-        Menu {
-            Section("Kimi 订阅") {
-                ForEach(app.models) { model in
-                    Button {
-                        let effort = model.efforts.contains(chat.config.effort ?? "")
-                            ? chat.config.effort
-                            : model.defaultEffort
-                        Task { await chat.setModel(model, effort: effort) }
-                    } label: {
-                        if model.model == chat.config.modelID {
-                            Label(model.name, systemImage: "checkmark")
-                        } else {
-                            Text(model.name)
-                        }
-                    }
-                }
-            }
-            if let currentModel, !currentModel.efforts.isEmpty {
-                Section("思考强度") {
-                    ForEach(currentModel.efforts, id: \.self) { effort in
-                        Button {
-                            Task { await chat.setModel(currentModel, effort: effort) }
-                        } label: {
-                            if effort == chat.config.effort {
-                                Label(effort.effortLabel, systemImage: "checkmark")
-                            } else {
-                                Text(effort.effortLabel)
-                            }
-                        }
-                    }
-                }
-            }
+        Button {
+            isFocused = false
+            activePanel = .model
         } label: {
             Text(modelLabel)
                 .font(.subheadline.weight(.medium))
@@ -180,6 +207,42 @@ struct ComposerView: View {
                 .frame(height: 34)
         }
         .tint(.primary)
+    }
+
+    private var attachmentPanel: some View {
+        VStack(spacing: 20) {
+            Text("添加附件")
+                .font(.headline)
+            HStack(spacing: 16) {
+                attachmentCard("图片", symbol: "photo.on.rectangle", source: .photo)
+                    .disabled(currentModel.map { !$0.acceptsImages } ?? false)
+                attachmentCard("文件", symbol: "doc", source: .file)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.top, 12)
+        .background(Color(.systemBackground))
+    }
+
+    private func attachmentCard(_ title: String, symbol: String, source: AttachmentSource) -> some View {
+        Button {
+            pendingAttachment = source
+            activePanel = nil
+        } label: {
+            VStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.system(size: 28, weight: .regular))
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+            }
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 112)
+            .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 22))
+            .contentShape(.rect(cornerRadius: 22))
+        }
+        .buttonStyle(.plain)
     }
 
     private var modelLabel: String {
@@ -199,9 +262,12 @@ struct ComposerView: View {
                 Image(systemName: "stop.fill")
                     .font(.body.weight(.semibold))
                     .frame(width: 30, height: 30)
+                    .padding(4)
+                    .foregroundStyle(.white)
+                    .contentShape(.circle)
             }
-            .buttonStyle(.glassProminent)
-            .buttonBorderShape(.circle)
+            .buttonStyle(.plain)
+            .glassEffect(.regular.tint(.accentColor), in: .circle)
             .accessibilityLabel("停止")
         } else {
             Button {
@@ -212,9 +278,12 @@ struct ComposerView: View {
                 Image(systemName: "arrow.up")
                     .font(.body.weight(.semibold))
                     .frame(width: 30, height: 30)
+                    .padding(4)
+                    .foregroundStyle(.white)
+                    .contentShape(.circle)
             }
-            .buttonStyle(.glassProminent)
-            .buttonBorderShape(.circle)
+            .buttonStyle(.plain)
+            .glassEffect(.regular.tint(.accentColor), in: .circle)
             .disabled(!canSend)
             .accessibilityLabel("发送")
         }

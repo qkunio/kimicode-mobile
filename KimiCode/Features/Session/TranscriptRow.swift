@@ -55,7 +55,7 @@ private struct UserBubble: View {
         Text(text)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color.accentColor.opacity(0.22), in: .rect(cornerRadius: 18))
+            .background(Color("AccentColor").opacity(0.22), in: .rect(cornerRadius: 18))
             .frame(maxWidth: .infinity, alignment: .trailing)
             .textSelection(.enabled)
     }
