@@ -1,0 +1,17 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+
+# 本地凭证 / 调试产物，永远不要提交
+*.token
+credentials/
+.env
+.env.*
