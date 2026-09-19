@@ -5,7 +5,6 @@ struct ModelSelectionPanel: View {
     let models: [ModelInfo]
     let confirm: (ModelInfo, String?) -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedID: String?
     @State private var selectedEffort: String?
 
@@ -67,8 +66,8 @@ struct ModelSelectionPanel: View {
                     .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
-                    .background(colorScheme == .dark ? Color.white : Color.black, in: .capsule)
+                    .foregroundStyle(.white)
+                    .background(Palette.kimi, in: .capsule)
             }
             .buttonStyle(.plain)
             .opacity(selectedModel == nil ? 0.4 : 1)

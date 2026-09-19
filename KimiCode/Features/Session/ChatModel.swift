@@ -291,6 +291,12 @@ final class ChatModel {
         optimisticPrompts.removeAll { !$0.failed && known.contains($0.text.trimmingCharacters(in: .whitespacesAndNewlines)) }
     }
 
+    /// 侧栏改了名：换上服务端回来的会话摘要（导航栏标题跟着变）。
+    func replaceSession(_ updated: SessionSummary) {
+        guard updated.id == session?.id else { return }
+        session = updated
+    }
+
     // MARK: composer 配置
 
     func setPermission(_ permission: PermissionMode) async {

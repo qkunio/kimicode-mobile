@@ -29,6 +29,7 @@ struct ConversationList: View {
         let entries = chat.entries
         let liveID = liveEntryID(entries)
         let interruptedID = interruptedEntryID(entries)
+        let faceInFooterID = idleFaceFooterID(entries)
 
         if chat.transcript.hasMoreOlder || chat.isLoadingOlder {
             LoadOlderRow(loading: chat.isLoadingOlder) {
@@ -53,7 +54,8 @@ struct ConversationList: View {
                         ui: ui,
                         live: assistant.id == liveID,
                         streamingTail: assistant.id == liveID ? streamingTail(assistant) : nil,
-                        showFooter: assistant.id != liveID && isLastOfRun(index, in: entries)
+                        showFooter: assistant.id != liveID && isLastOfRun(index, in: entries),
+                        showsIdleFace: assistant.id == faceInFooterID
                     )
                     if assistant.id == interruptedID {
                         LabeledDivider(text: "已手动终止")
@@ -86,8 +88,13 @@ struct ConversationList: View {
                 .padding(.top, 12)
         }
 
-        if chat.isWorking || !entries.isEmpty {
-            WorkingIndicator(label: chat.isWorking ? workingLabel(entries) : nil)
+        // 在跑：单独一行「小脸 + 工作中…」。空闲：小脸挪进最后一条回复的页脚，和时间、复制同一行；
+        // 最后一条没有页脚（比如是用户消息）时才单独占一行。
+        if chat.isWorking {
+            WorkingIndicator(label: workingLabel(entries))
+                .padding(.top, 14)
+        } else if !entries.isEmpty, faceInFooterID == nil {
+            WorkingIndicator(label: nil)
                 .padding(.top, 14)
         }
     }
@@ -95,6 +102,13 @@ struct ConversationList: View {
     /// `g`：本轮在跑时，最后一条若是助手消息，它就是「活的」那条。
     private func liveEntryID(_ entries: [ChatEntry]) -> String? {
         guard chat.isWorking, case let .assistant(entry)? = entries.last?.kind else { return nil }
+        return entry.id
+    }
+
+    /// 空闲时小脸放进哪条回复的页脚：最后一条是有内容的助手消息、且后面没有失败卡片。
+    private func idleFaceFooterID(_ entries: [ChatEntry]) -> String? {
+        guard !chat.isWorking, case let .assistant(entry)? = entries.last?.kind, entry.hasContent else { return nil }
+        if case .failed? = chat.lastTurnEnd { return nil }
         return entry.id
     }
 
@@ -328,6 +342,7 @@ struct AssistantMessageView: View {
     let live: Bool
     let streamingTail: Int?
     let showFooter: Bool
+    var showsIdleFace = false
 
     @State private var copied = false
 
@@ -364,6 +379,10 @@ struct AssistantMessageView: View {
     private var footer: some View {
         let text = entry.visibleText
         HStack(spacing: 6) {
+            if showsIdleFace {
+                KimiFace(animating: false)
+                    .padding(.trailing, 6)
+            }
             if let time = entry.endedAt ?? entry.createdAt.map({ $0.addingTimeInterval((entry.durationMs ?? 0) / 1000) }) {
                 MessageTime(date: time)
             }
@@ -1218,7 +1237,7 @@ struct WorkingIndicator: View {
     }
 }
 
-private struct KimiFace: View {
+struct KimiFace: View {
     let animating: Bool
 
     var body: some View {

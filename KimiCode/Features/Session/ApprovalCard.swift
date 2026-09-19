@@ -3,7 +3,7 @@ import SwiftUI
 /// 权限确认卡片，结构对照官方 ApprovalCard：
 ///   头部 = 提醒圆点 + 按类型的标题（「运行命令?」「应用修改?」…），可最小化；
 ///   中间 = 要批准的东西原样摆出来（命令 / 路径 / URL / 计划）；
-///   底部 = 手机上竖排满宽的按钮：本会话内批准 / 反馈 / 拒绝 / 批准。
+///   底部 = 竖排满宽的按钮：批准 / 本会话内批准 / 拒绝 / 反馈。
 struct ApprovalCard: View {
     let approval: ApprovalRequest
     let resolve: (ApprovalDecisionBody) -> Void
@@ -63,14 +63,14 @@ struct ApprovalCard: View {
             Button {
                 minimized.toggle()
             } label: {
-                Image(systemName: minimized ? "chevron.up" : "minus")
+                Image(systemName: minimized ? "chevron.up" : "chevron.down")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 28, height: 28)
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(minimized ? "展开" : "最小化")
+            .accessibilityLabel(minimized ? "展开" : "收起")
         }
     }
 
@@ -159,17 +159,19 @@ struct ApprovalCard: View {
     private var actions: some View {
         VStack(spacing: 8) {
             if isGivingFeedback {
-                ActionButton("取消") {
-                    isGivingFeedback = false
-                    feedback = ""
-                }
-                ActionButton("提交并拒绝", primary: true) {
-                    let text = feedback.trimmingCharacters(in: .whitespacesAndNewlines)
-                    decide(.init(
-                        decision: "rejected",
-                        feedback: text.isEmpty ? nil : text,
-                        selectedLabel: block.kind == "plan_review" ? "Revise" : nil
-                    ))
+                HStack(spacing: 8) {
+                    ActionButton("取消") {
+                        isGivingFeedback = false
+                        feedback = ""
+                    }
+                    ActionButton("提交并拒绝", primary: true) {
+                        let text = feedback.trimmingCharacters(in: .whitespacesAndNewlines)
+                        decide(.init(
+                            decision: "rejected",
+                            feedback: text.isEmpty ? nil : text,
+                            selectedLabel: block.kind == "plan_review" ? "Revise" : nil
+                        ))
+                    }
                 }
             } else if block.kind == "plan_review" {
                 if block.options.isEmpty {
@@ -184,10 +186,10 @@ struct ApprovalCard: View {
                     }
                 }
             } else {
-                ActionButton("本会话内批准") { decide(.approved(forSession: true)) }
-                ActionButton("反馈") { isGivingFeedback = true }
-                ActionButton("拒绝") { decide(.rejected()) }
                 ActionButton("批准", primary: true) { decide(.approved()) }
+                ActionButton("本会话内批准") { decide(.approved(forSession: true)) }
+                ActionButton("拒绝") { decide(.rejected()) }
+                ActionButton("反馈") { isGivingFeedback = true }
             }
         }
     }
@@ -431,7 +433,7 @@ struct QuestionCard: View {
                 Button {
                     minimized.toggle()
                 } label: {
-                    Image(systemName: minimized ? "chevron.up" : "minus")
+                    Image(systemName: minimized ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .frame(width: 28, height: 28)
@@ -476,16 +478,18 @@ struct QuestionCard: View {
                                 .opacity(page >= request.questions.count - 1 ? 0.5 : 1)
                         }
                     }
-                    ActionButton("放弃") {
-                        busy = true
-                        dismiss()
+                    HStack(spacing: 8) {
+                        ActionButton("放弃") {
+                            busy = true
+                            dismiss()
+                        }
+                        ActionButton("提交", primary: true) {
+                            busy = true
+                            answer(answers)
+                        }
+                        .disabled(!allAnswered)
+                        .opacity(allAnswered ? 1 : 0.5)
                     }
-                    ActionButton("提交", primary: true) {
-                        busy = true
-                        answer(answers)
-                    }
-                    .disabled(!allAnswered)
-                    .opacity(allAnswered ? 1 : 0.5)
                 }
             }
         }

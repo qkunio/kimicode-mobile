@@ -562,6 +562,46 @@ struct WorkspaceList: Decodable, Sendable {
     let items: [Workspace]
 }
 
+/// `GET /fs:browse?path=`：某个目录下的条目（添加工作区时逐级浏览）。
+struct FsBrowse: Decodable, Sendable {
+    let path: String
+    let parent: String?
+    let entries: [Entry]
+
+    struct Entry: Decodable, Identifiable, Hashable, Sendable {
+        let name: String
+        let path: String
+        let isDir: Bool
+
+        var id: String { path }
+
+        enum CodingKeys: String, CodingKey {
+            case name, path
+            case isDir = "is_dir"
+        }
+    }
+
+    enum CodingKeys: String, CodingKey { case path, parent, entries }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        path = (try? c.decode(String.self, forKey: .path)) ?? ""
+        parent = try? c.decodeIfPresent(String.self, forKey: .parent)
+        entries = (try? c.decodeIfPresent([Entry].self, forKey: .entries)) ?? []
+    }
+}
+
+/// `GET /fs:home`：那台电脑的主目录。
+struct FsHome: Decodable, Sendable {
+    let home: String
+    let recentRoots: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case home
+        case recentRoots = "recent_roots"
+    }
+}
+
 // MARK: - 模型
 
 /// `GET /models` 的一项。

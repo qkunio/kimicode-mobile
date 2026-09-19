@@ -43,6 +43,7 @@ diff/文件卡片、看子 agent 与 task 面板、终端流）。
 | 元素 | 接口 | 备注 |
 |---|---|---|
 | 设备下拉 | relay `GET /v1/remote/devices` | 离线的列出但禁用 |
+| 添加项目（设备下方） | `GET /fs:home` → `GET /fs:browse?path=` 逐级浏览 → `POST /workspaces {root}`（按 root 幂等） | 照网页端 AddWorkspaceDialog：上一级 / 面包屑 / 子文件夹列表 / 当前目录下模糊搜索（最多 6 层、600 个目录、150 条，同批 6 并发）/「打开此文件夹」；加完在新项目开新对话并收起侧栏 |
 | 文件夹 | `GET /workspaces` → `{items:[{id,root,name,last_opened_at,session_count}]}` | 按 `last_opened_at` 倒序 |
 | 文件夹下的会话 | `GET /sessions` 按 `workspace_id` 分组；点文件夹名展开/收起（无箭头） | 已归档的、挂不上任何文件夹的都不显示 |
 | 文件夹旁 + | 草稿；第一条消息时 `POST /sessions {metadata:{cwd:root}, workspace_id, agent_config}` | 与网页端 `createSession` 同形 |

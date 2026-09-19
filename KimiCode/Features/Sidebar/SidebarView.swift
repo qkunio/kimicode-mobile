@@ -1,14 +1,15 @@
 import SwiftUI
 
 /// 侧栏：
-///   KIMI CODE
+///   Kimi Code Mobile
 ///   设备 (MAC ▾)
+///   📁+ 添加文件夹
 ///   📁 Folder1                        (+)
 ///        Session1
 ///        Session2
 ///   📁 Folder2                        (+)
-///   ───────────────────────────────
-///   (头像) 昵称                    [退出登录]
+///   ╭ (头像) 昵称                  [退出登录] ╮   ← 悬浮胶囊卡片，和输入框同一种玻璃
+
 struct SidebarView: View {
     let close: () -> Void
 
@@ -16,6 +17,10 @@ struct SidebarView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var collapsed: Set<String> = []
     @State private var isConfirmingSignOut = false
+    @State private var isAddingWorkspace = false
+    @State private var renaming: SessionSummary?
+    @State private var renameText = ""
+    @State private var deleting: SessionSummary?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -26,18 +31,45 @@ struct SidebarView: View {
             deviceRow
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
-                .padding(.bottom, 6)
+
+            // 「设备」→「添加文件夹」与「添加文件夹」→ 第一个文件夹的行距一致（都是 55pt）。
+            addFolderRow
+                .padding(.horizontal, 20)
+                .padding(.top, 17)
 
             folderList
-
-            Divider()
-            accountRow
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                // 和主页 composer 一样用 safeAreaBar：列表滚到卡片后面时渐隐模糊。
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    accountCard
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 8)
+                }
         }
         .background(
             Color(colorScheme == .dark ? .secondarySystemBackground : .systemGroupedBackground)
         )
+        .sheet(isPresented: $isAddingWorkspace) {
+            if let client = app.client {
+                AddWorkspaceSheet(client: client) { root in
+                    try await app.addWorkspace(root: root)
+                    // 已在新项目里开好新对话，收起侧栏直接进去。
+                    close()
+                }
+                .presentationDetents([.large])
+            }
+        }
+        // 长按会话：重命名 / 删除对话。
+        .alert("重命名", isPresented: .init(get: { renaming != nil }, set: { if !$0 { renaming = nil } }), presenting: renaming) { session in
+            TextField("会话名称", text: $renameText)
+            Button("取消", role: .cancel) {}
+            Button("确定") { Task { await app.rename(session, to: renameText) } }
+        }
+        .alert("删除会话", isPresented: .init(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), presenting: deleting) { session in
+            Button("取消", role: .cancel) {}
+            Button("永久删除", role: .destructive) { Task { await app.delete(session) } }
+        } message: { session in
+            Text("将永久删除「\(session.displayTitle)」的全部对话记录，无法恢复。工作区里的文件和代码改动不受影响。")
+        }
         .alert("是否退出登录？", isPresented: $isConfirmingSignOut) {
             Button("取消", role: .cancel) {}
             Button("退出", role: .destructive) { app.signOut() }
@@ -47,15 +79,20 @@ struct SidebarView: View {
     // MARK: 头部
 
     private var header: some View {
-        Text("KIMI CODE")
-            .font(.system(.title2, weight: .black))
-            .tracking(0.5)
-            .frame(height: 44)
+        HStack(spacing: 10) {
+            KimiFace(animating: false)
+                .scaleEffect(1.25)
+                .frame(width: 30, height: 20)
+            (Text("Kimi Code ") + Text("Mobile").foregroundStyle(Palette.kimi))
+                .font(.system(.title2, weight: .black))
+        }
+        .frame(height: 44)
     }
 
     // MARK: 底部账号
 
-    private var accountRow: some View {
+    /// 悬浮的胶囊卡片（参考输入框：同一种玻璃，列表从它下面滚过去）。
+    private var accountCard: some View {
         HStack(spacing: 12) {
             Avatar(url: app.user?.avatarURL)
             Text(app.user?.displayName ?? "Kimi 用户")
@@ -74,13 +111,18 @@ struct SidebarView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("退出登录")
         }
+        .padding(.leading, 10)
+        .padding(.trailing, 8)
+        .padding(.vertical, 8)
+        .glassEffect(in: .capsule)
     }
 
     private var deviceRow: some View {
         HStack(spacing: 10) {
+            // 与文件夹标题同一字号。
             Text("设备")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.body)
+                .foregroundStyle(.primary)
 
             Menu {
                 Section("在线") {
@@ -133,6 +175,27 @@ struct SidebarView: View {
 
             Spacer(minLength: 0)
         }
+    }
+
+    /// 选一个电脑上的文件夹加成工作区（官方网页端「添加工作区」）。样式与下面的文件夹行一致。
+    private var addFolderRow: some View {
+        Button {
+            isAddingWorkspace = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "folder.badge.plus")
+                    .font(.system(size: 20, weight: .regular))
+                    .frame(width: 24)
+                Text("添加文件夹")
+                    .font(.body)
+                Spacer(minLength: 4)
+            }
+            .foregroundStyle(.primary)
+            .frame(minHeight: 44)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(app.client == nil)
     }
 
     // MARK: 文件夹 / 会话
@@ -229,6 +292,19 @@ struct SidebarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isCurrent ? .isSelected : [])
+        .contextMenu {
+            Button {
+                renameText = session.displayTitle
+                renaming = session
+            } label: {
+                Label("重命名", systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                deleting = session
+            } label: {
+                Label("删除对话", systemImage: "trash")
+            }
+        }
     }
 
 }

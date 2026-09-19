@@ -171,6 +171,42 @@ final class AppModel {
         replaceChat(with: makeChat(session: session, workspace: workspace))
     }
 
+    /// 添加一个项目文件夹：建成工作区后刷新侧栏，并在里面开一个新对话草稿（与网页端一致）。
+    func addWorkspace(root: String) async throws {
+        guard let client else { return }
+        let workspace = try await client.addWorkspace(root: root)
+        await refreshSidebar()
+        newChat(in: workspaces.first { $0.id == workspace.id } ?? workspace)
+    }
+
+    /// 重命名会话。名字为空或没变就什么都不做（与网页端一致）。
+    func rename(_ session: SessionSummary, to title: String) async {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let client, !trimmed.isEmpty, trimmed != session.displayTitle else { return }
+        do {
+            let updated = try await client.renameSession(session.id, title: trimmed)
+            if let index = sessions.firstIndex(where: { $0.id == session.id }) { sessions[index] = updated }
+            chat?.replaceSession(updated)
+        } catch {
+            handle(error)
+        }
+    }
+
+    /// 永久删除会话。删的正是当前这条时，回到同一文件夹的新对话。
+    func delete(_ session: SessionSummary) async {
+        guard let client else { return }
+        do {
+            try await client.deleteSession(session.id)
+            sessions.removeAll { $0.id == session.id }
+            if chat?.sessionID == session.id {
+                let workspace = workspaces.first { $0.id == session.workspaceID }
+                replaceChat(with: makeChat(session: nil, workspace: workspace))
+            }
+        } catch {
+            handle(error)
+        }
+    }
+
     func newChat(in workspace: Workspace) {
         replaceChat(with: makeChat(session: nil, workspace: workspace))
     }

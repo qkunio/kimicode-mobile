@@ -36,6 +36,20 @@ struct KapClient: Sendable {
         return list.items
     }
 
+    /// 添加工作区（网页端 `addWorkspace`）：`POST /workspaces {root}`。
+    func addWorkspace(root: String) async throws -> Workspace {
+        struct Body: Encodable { let root: String }
+        return try await post("workspaces", body: Body(root: root))
+    }
+
+    func browseFs(_ path: String) async throws -> FsBrowse {
+        try await get("fs:browse", query: ["path": path])
+    }
+
+    func fsHome() async throws -> FsHome {
+        try await get("fs:home")
+    }
+
     func models() async throws -> [ModelInfo] {
         let list: ModelList = try await get("models")
         return list.items
@@ -72,6 +86,18 @@ struct KapClient: Sendable {
             enum CodingKeys: String, CodingKey { case agentConfig = "agent_config" }
         }
         return try await post("sessions/\(sessionID)/profile", body: Body(agentConfig: agentConfig))
+    }
+
+    /// 重命名（网页端 `updateSession({title})`：`POST /sessions/{id}/profile {title}`）。
+    func renameSession(_ sessionID: String, title: String) async throws -> SessionSummary {
+        struct Body: Encodable { let title: String }
+        return try await post("sessions/\(sessionID)/profile", body: Body(title: title))
+    }
+
+    /// 永久删除会话（网页端 `deleteSession`：`POST /sessions/{id}:delete`）。
+    func deleteSession(_ sessionID: String) async throws {
+        struct Empty: Encodable {}
+        let _: JSONValue = try await post("sessions/\(sessionID):delete", body: Empty())
     }
 
     /// 对话正文（与网页端 `getSessionTranscript` 一致，按轮分页，`page_size` 上限 100）。

@@ -102,7 +102,7 @@ struct ContextRingGauge: View {
 
     private var tint: Color {
         switch ratio {
-        case ..<0.7: .accentColor
+        case ..<0.7: Palette.kimi
         case ..<0.9: .orange
         default: .red
         }

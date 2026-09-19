@@ -61,9 +61,12 @@ private struct ChatContent: View {
     @State private var undoTarget: UserEntry?
     /// 停在底部时新内容自动跟随（官方 isFollowing）；往上翻了就不打扰。
     @State private var isFollowing = true
+    @State private var scrollPosition = ScrollPosition(edge: .bottom)
+    /// 离底部超过一屏的一半就显示「回到底部」按钮。
+    @State private var showsJumpToBottom = false
 
     var body: some View {
-        ScrollViewReader { proxy in
+        Group {
             ScrollView {
                 // 不用 LazyVStack：高度差异大时它估不准，滚到底会落在空白里。
                 // 一页只有 30 轮、折叠的部分本来就不渲染，普通 VStack 足够。
@@ -75,20 +78,37 @@ private struct ChatContent: View {
                     ConversationList(chat: chat, ui: ui) { entry in
                         undoTarget = entry
                     }
-
-                    Color.clear.frame(height: 1).id(Self.bottomAnchor)
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
             }
+            .scrollPosition($scrollPosition)
             .scrollDismissesKeyboard(.interactively)
             .defaultScrollAnchor(.bottom, for: .initialOffset)
+            // 键盘弹出（或确认卡片出现）时底部 inset 变大：本来停在底部的话，聊天记录跟着一起往上推，
+            // 在同一个布局事务里滚，和键盘动画同步。
+            .onScrollGeometryChange(for: CGFloat.self) { $0.contentInsets.bottom } action: { old, new in
+                guard new > old, isFollowing else { return }
+                scrollPosition.scrollTo(edge: .bottom)
+            }
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentSize.height - geometry.visibleRect.maxY > geometry.containerSize.height / 2
+            } action: { _, far in
+                withAnimation(.snappy(duration: 0.2)) { showsJumpToBottom = far }
+            }
             .onScrollPhaseChange { _, phase, context in
-                // 只在用户自己滑完之后判断：内容撑高不该把「跟随」关掉。
-                guard phase == .idle else { return }
-                // visibleRect 已经算上了底部 composer 的 inset。
-                let geometry = context.geometry
-                isFollowing = geometry.visibleRect.maxY >= geometry.contentSize.height - 80
+                switch phase {
+                case .interacting:
+                    // 手指一放上去就停止跟随：回答生成中也能往上翻，不会被新内容拽回底部。
+                    isFollowing = false
+                case .idle:
+                    // 滑完停在底部附近才恢复跟随。visibleRect 已经算上了底部 composer 的 inset。
+                    let geometry = context.geometry
+                    isFollowing = geometry.visibleRect.maxY >= geometry.contentSize.height - 80
+                default:
+                    break
+                }
             }
             .contentShape(.rect)
             .simultaneousGesture(
@@ -99,8 +119,10 @@ private struct ChatContent: View {
                     )
                 }
             )
-            .onChange(of: chat.contentVersion) { if isFollowing { scrollToBottom(proxy, animated: false) } }
-            .onChange(of: chat.optimisticPrompts.count) { scrollToBottom(proxy) }
+            .onChange(of: chat.contentVersion) { if isFollowing { scrollToBottom(animated: false) } }
+            // 一轮结束时「工作中」那行换成页脚，高度会变，再贴一次底。
+            .onChange(of: chat.isWorking) { if isFollowing { scrollToBottom() } }
+            .onChange(of: chat.optimisticPrompts.count) { scrollToBottom() }
         }
         // 用 safeAreaBar 而不是 safeAreaInset：只有前者参与 iOS 26 的滚动边缘效果，
         // 正文滚到 composer 后面时会像导航栏那样渐隐模糊。
@@ -118,10 +140,21 @@ private struct ChatContent: View {
                         Task { await chat.resolve(approval, decision: decision) }
                     }
                 }
-                ComposerView(chat: chat, draft: $draft)
+                // 等你确认 / 回答时只留卡片，输入框先收起来（草稿还在）。
+                if !isAwaitingInteraction {
+                    ComposerView(chat: chat, draft: $draft)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
+            // 按钮浮在底栏上方，不算进底栏高度：否则 iOS 26 的边缘毛玻璃会跟着往上扩一截。
+            .overlay(alignment: .top) {
+                if showsJumpToBottom {
+                    jumpToBottomButton
+                        .offset(y: -52)
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                }
+            }
         }
         .alert(
             "出错了",
@@ -145,6 +178,10 @@ private struct ChatContent: View {
         } message: { _ in
             Text("撤销后，这条消息及之后的会话内容会从上下文中移除，这条消息的原文会放回输入框；已修改的文件和代码不受影响。")
         }
+        .onChange(of: isAwaitingInteraction) { _, awaiting in
+            guard awaiting else { return }
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
         .onChange(of: chat.restoredDraft) { _, text in
             guard let text else { return }
             draft = text
@@ -153,15 +190,40 @@ private struct ChatContent: View {
         .refreshable { await chat.reload() }
     }
 
-    private static let bottomAnchor = "bottom"
+    /// 一键回到底部，并恢复跟随新内容。
+    private var jumpToBottomButton: some View {
+        Button {
+            isFollowing = true
+            scrollToBottom()
+        } label: {
+            Image(systemName: "arrow.down")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 40, height: 40)
+                .glassEffect(in: .circle)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("回到底部")
+    }
 
-    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
-        if animated {
-            withAnimation(.easeOut(duration: 0.2)) {
-                proxy.scrollTo(Self.bottomAnchor, anchor: .bottom)
+    private var isAwaitingInteraction: Bool {
+        !chat.pendingApprovals.isEmpty || !chat.pendingQuestions.isEmpty
+    }
+
+    /// 滚到内容真正的末尾（含底部 inset）。内容刚变时新行可能还没排版，
+    /// 所以下一轮主线程滚一次，布局稳定后（约 0.15s）再补一次。
+    private func scrollToBottom(animated: Bool = true) {
+        let scroll = {
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) { scrollPosition.scrollTo(edge: .bottom) }
+            } else {
+                scrollPosition.scrollTo(edge: .bottom)
             }
-        } else {
-            proxy.scrollTo(Self.bottomAnchor, anchor: .bottom)
+        }
+        DispatchQueue.main.async(execute: scroll)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            guard isFollowing else { return }
+            scrollPosition.scrollTo(edge: .bottom)
         }
     }
 }

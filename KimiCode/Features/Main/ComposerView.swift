@@ -268,7 +268,7 @@ struct ComposerView: View {
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
-            .glassEffect(.regular.tint(.accentColor), in: .circle)
+            .glassEffect(.regular.tint(Palette.kimi), in: .circle)
             .accessibilityLabel("停止")
         } else {
             Button {
@@ -284,7 +284,7 @@ struct ComposerView: View {
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
-            .glassEffect(.regular.tint(.accentColor), in: .circle)
+            .glassEffect(.regular.tint(Palette.kimi), in: .circle)
             .disabled(!canSend)
             .accessibilityLabel("发送")
         }
