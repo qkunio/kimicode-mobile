@@ -104,9 +104,9 @@ struct SidebarView: View {
             } label: {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.body.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.red)
                     .frame(width: 38, height: 38)
-                    .background(Color(.tertiarySystemFill), in: .circle)
+                    .contentShape(.circle)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("退出登录")

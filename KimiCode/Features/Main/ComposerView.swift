@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 ///
 ///   - ＋        菜单：图片（当前模型不收图时禁用）/ 文件
 ///   - 权限图标  与网页端同三档：始终询问 / 必要时询问 / 完全自动，文字只在菜单里出现
-///   - K3·Low    模型与思考强度
+///   - K3 Low    模型与思考强度
 ///   - ↑ / ■     发送；忙且没输入时变成停止
 struct ComposerView: View {
     let chat: ChatModel
@@ -15,6 +15,7 @@ struct ComposerView: View {
     @Environment(AppModel.self) private var app
     @FocusState private var isFocused: Bool
     @State private var inputCardHeight: CGFloat = 96
+    @State private var modelPanelHeight: CGFloat = 480
     @State private var pickedPhotos: [PhotosPickerItem] = []
     @State private var isPickingPhotos = false
     @State private var isPickingFiles = false
@@ -65,7 +66,7 @@ struct ComposerView: View {
                 AttachmentStrip(chat: chat)
             }
 
-            TextField("让 Kimi 做点什么…", text: $draft, axis: .vertical)
+            TextField("让 Kimi 做点什么…", text: $draft, prompt: Text("让 Kimi 做点什么…").foregroundStyle(Color(.secondaryLabel)), axis: .vertical)
                 .lineLimit(1 ... 6)
                 .focused($isFocused)
                 .padding(.horizontal, 4)
@@ -103,11 +104,11 @@ struct ComposerView: View {
         }) { panel in
             switch panel {
             case .model:
-                ModelSelectionPanel(models: app.models, config: chat.config) { model, effort in
+                ModelSelectionPanel(models: app.models, config: chat.config, confirm: { model, effort in
                     Task { await chat.setModel(model, effort: effort) }
                     activePanel = nil
-                }
-                .presentationDetents([.fraction(0.75), .large])
+                }, onHeight: { modelPanelHeight = $0 })
+                .presentationDetents([.height(modelPanelHeight)])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(32)
             case .attachment:
@@ -200,9 +201,10 @@ struct ComposerView: View {
             isFocused = false
             activePanel = .model
         } label: {
-            Text(modelLabel)
+            // 模型名正常色，思考强度与占位文字同色。
+            (Text(modelName).foregroundStyle(.primary)
+                + Text(effortSuffix).foregroundStyle(Color(.secondaryLabel)))
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .frame(height: 34)
@@ -246,12 +248,16 @@ struct ComposerView: View {
         .buttonStyle(.plain)
     }
 
-    private var modelLabel: String {
-        let name = currentModel?.name
+    private var modelName: String {
+        currentModel?.name
             ?? chat.config.modelID.map { ($0 as NSString).lastPathComponent }
             ?? "模型"
-        guard let effort = chat.config.effort, currentModel?.efforts.isEmpty == false else { return name }
-        return "\(name)·\(effort.effortLabel)"
+    }
+
+    /// 「 Max」：模型不支持强度时为空。
+    private var effortSuffix: String {
+        guard let effort = chat.config.effort, currentModel?.efforts.isEmpty == false else { return "" }
+        return " \(effort.effortLabel)"
     }
 
     @ViewBuilder

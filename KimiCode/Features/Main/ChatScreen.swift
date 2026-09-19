@@ -5,6 +5,7 @@ struct ChatScreen: View {
     let openSidebar: () -> Void
 
     @Environment(AppModel.self) private var app
+    @State private var isAddingWorkspace = false
 
     var body: some View {
         Group {
@@ -15,8 +16,16 @@ struct ChatScreen: View {
                 placeholder
             }
         }
-        .navigationTitle(app.chat?.title ?? "")
+        // 顶部不显示会话标题。
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isAddingWorkspace) {
+            if let client = app.client {
+                AddWorkspaceSheet(client: client) { root in
+                    try await app.addWorkspace(root: root)
+                }
+                .presentationDetents([.large])
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(action: openSidebar) {
@@ -46,9 +55,49 @@ struct ChatScreen: View {
                 }
                 .buttonStyle(.glass)
             }
+        } else if app.workspaces.isEmpty {
+            // 电脑上一个文件夹都没有：先引导添加，加完 AppModel 会自动开一个新对话。
+            WelcomeHero {
+                HStack(spacing: 0) {
+                    Button {
+                        isAddingWorkspace = true
+                    } label: {
+                        // 系统下划线贴字太紧，自己画一条往下挪 4pt。
+                        Text("打开文件夹")
+                            .overlay(alignment: .bottom) {
+                                Rectangle().frame(height: 1.5).offset(y: 4)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    Text("，我们开始创造吧")
+                }
+            }
+            // 这一页没有输入框，按整块屏幕居中，不算顶部栏。
+            .ignoresSafeArea()
         } else {
             Color.clear
         }
+    }
+}
+
+/// 空白对话中间的欢迎：会动的 Kimi 小脸 + 一句话。
+struct WelcomeHero<Message: View>: View {
+    @ViewBuilder var message: Message
+
+    var body: some View {
+        VStack(spacing: 28) {
+            KimiFace(animating: true)
+                .scaleEffect(3)
+                .frame(width: 72, height: 48)
+            message
+                .font(.title2.weight(.bold))
+                .multilineTextAlignment(.center)
+                // 按屏幕宽度排版（overlay 里给的宽度不可靠，会被挤成一列）。
+                .containerRelativeFrame(.horizontal) { width, _ in width - 48 }
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -82,6 +131,15 @@ private struct ChatContent: View {
                 .padding(.horizontal)
                 .padding(.top, 12)
                 .padding(.bottom, 24)
+            }
+            .overlay {
+                // 新对话还没发任何东西：中间放欢迎语。
+                if chat.isDraft, chat.entries.isEmpty, chat.optimisticPrompts.isEmpty {
+                    WelcomeHero {
+                        Text("你来啦，在\(chat.workspace?.displayName ?? "这里")里开始创造吧")
+                    }
+                    .allowsHitTesting(false)
+                }
             }
             .scrollPosition($scrollPosition)
             .scrollDismissesKeyboard(.interactively)
@@ -196,11 +254,13 @@ private struct ChatContent: View {
             isFollowing = true
             scrollToBottom()
         } label: {
+            // 实底圆 + 细边，不用玻璃：玻璃会把后面的正文糊成一圈。
             Image(systemName: "arrow.down")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(.primary)
                 .frame(width: 40, height: 40)
-                .glassEffect(in: .circle)
+                .background(Color(.systemBackground), in: .circle)
+                .overlay(Circle().stroke(Palette.line, lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("回到底部")

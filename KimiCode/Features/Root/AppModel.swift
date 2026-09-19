@@ -129,6 +129,7 @@ final class AppModel {
         self.models = ((try? await models) ?? []).filter(\.isKimiSubscription)
         self.defaultModelID = (try? await config)?.defaultModel
         if let value = try? await user { self.user = value }
+        reconcileDraft()
     }
 
     /// 打开侧栏时刷新：会话状态（忙/待确认）变化最快。
@@ -141,6 +142,22 @@ final class AppModel {
             self.workspaces = items.sorted {
                 ($0.lastOpenedAt?.date ?? .distantPast) > ($1.lastOpenedAt?.date ?? .distantPast)
             }
+            reconcileDraft()
+        }
+    }
+
+    /// 草稿所在的文件夹被删了（比如在电脑上移除了工作区）：换到还在的第一个文件夹；
+    /// 一个都不剩就清空，让主页显示「打开文件夹」引导。
+    private func reconcileDraft() {
+        guard let chat, chat.isDraft else {
+            if chat == nil, let first = workspaces.first { newChat(in: first) }
+            return
+        }
+        guard let workspace = chat.workspace, !workspaces.contains(where: { $0.id == workspace.id }) else { return }
+        if let first = workspaces.first {
+            newChat(in: first)
+        } else {
+            replaceChat(with: nil)
         }
     }
 

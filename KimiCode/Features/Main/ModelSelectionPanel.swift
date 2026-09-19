@@ -4,13 +4,20 @@ import SwiftUI
 struct ModelSelectionPanel: View {
     let models: [ModelInfo]
     let confirm: (ModelInfo, String?) -> Void
+    var onHeight: ((CGFloat) -> Void)?
 
     @State private var selectedID: String?
     @State private var selectedEffort: String?
 
-    init(models: [ModelInfo], config: ComposerConfig, confirm: @escaping (ModelInfo, String?) -> Void) {
+    init(
+        models: [ModelInfo],
+        config: ComposerConfig,
+        confirm: @escaping (ModelInfo, String?) -> Void,
+        onHeight: ((CGFloat) -> Void)? = nil
+    ) {
         self.models = models
         self.confirm = confirm
+        self.onHeight = onHeight
         _selectedID = State(initialValue: config.modelID)
         _selectedEffort = State(initialValue: config.effort)
     }
@@ -21,7 +28,7 @@ struct ModelSelectionPanel: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("配置")
+            Text("模型")
                 .font(.headline)
                 .padding(.top, 28)
 
@@ -51,6 +58,8 @@ struct ModelSelectionPanel: View {
                 }
                 .padding(.horizontal, 24)
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .fixedSize(horizontal: false, vertical: true)
 
             if let model = selectedModel, !model.efforts.isEmpty {
                 effortMenu(for: model)
@@ -75,6 +84,9 @@ struct ModelSelectionPanel: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
         }
+        // 面板高度按内容算（交给外面设 detent），不留大片空白。
+        .fixedSize(horizontal: false, vertical: true)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onHeight?($0) }
         .background(Color(.systemBackground))
     }
 
