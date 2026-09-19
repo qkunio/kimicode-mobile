@@ -303,7 +303,7 @@ enum Palette {
         : UIColor(red: 0xFB / 255, green: 0xEA / 255, blue: 0xEA / 255, alpha: 1) })
     static let diffAdd = dynamic(light: 0x16C456, dark: 0x16C456)
     static let diffDel = dynamic(light: 0xFF4756, dark: 0xFF4756)
-    static let kimi = dynamic(light: 0x1783FF, dark: 0x1A88FF)
+    static let kimi = Color("AccentColor")
 
     private static func dynamic(light: UInt32, dark: UInt32) -> Color {
         Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light) })

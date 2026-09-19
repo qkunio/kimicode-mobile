@@ -6,6 +6,14 @@ struct ChatScreen: View {
 
     @Environment(AppModel.self) private var app
     @State private var isAddingWorkspace = false
+    @State private var confirmedEmptyDeviceID: String?
+
+    private var emptyWorkspaceDeviceID: String? {
+        guard app.hasLoadedDevices, !app.isLoadingDevices,
+              !app.onlineDevices.isEmpty, app.chat == nil,
+              app.workspaces.isEmpty else { return nil }
+        return app.endpoint?.deviceID
+    }
 
     var body: some View {
         Group {
@@ -18,6 +26,13 @@ struct ChatScreen: View {
         }
         // 顶部不显示会话标题。
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: emptyWorkspaceDeviceID) {
+            confirmedEmptyDeviceID = nil
+            guard let deviceID = emptyWorkspaceDeviceID else { return }
+            do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            guard !Task.isCancelled, emptyWorkspaceDeviceID == deviceID else { return }
+            confirmedEmptyDeviceID = deviceID
+        }
         .sheet(isPresented: $isAddingWorkspace) {
             if let client = app.client {
                 AddWorkspaceSheet(client: client) { root in
@@ -55,7 +70,7 @@ struct ChatScreen: View {
                 }
                 .buttonStyle(.glass)
             }
-        } else if app.workspaces.isEmpty {
+        } else if let deviceID = emptyWorkspaceDeviceID, confirmedEmptyDeviceID == deviceID {
             // 电脑上一个文件夹都没有：先引导添加，加完 AppModel 会自动开一个新对话。
             WelcomeHero {
                 HStack(spacing: 0) {
