@@ -17,4 +17,5 @@ NODE_PATH=$(npm root -g) node render.mjs --portrait video-v.mp4 30  # 9:16
 python3 sfx.py cues.json audio.wav
 ffmpeg -i video.mp4 -i audio.wav -c:v copy -c:a aac -b:a 256k -shortest -movflags +faststart kimicode-mobile-promo.mp4
 ```
-# 竖屏版把 video.mp4 换成 video-v.mp4，输出 kimicode-mobile-promo-9x16.mp4
+
+竖屏版把最后一步的 `video.mp4` 换成 `video-v.mp4`，输出名改成 `kimicode-mobile-promo-9x16.mp4`。
