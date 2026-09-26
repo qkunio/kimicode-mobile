@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Kimi Code Mobile 推广片</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&family=Inter:wght@500;700;900&display=block" rel="stylesheet">
+<style>
+:root{
+  --kimi:#1783FF; --kimi2:#5AA8FF; --bg:#05070D; --ink:#0B0D12;
+  --fill:rgba(0,0,0,.035); --line:rgba(0,0,0,.1); --muted:#8A8F98;
+  --add:#16C456; --del:#FF4756;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);
+  font-family:"Inter","Noto Sans SC",system-ui,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
+.mono{font-family:"JetBrains Mono",monospace}
+#stage{position:absolute;inset:0;overflow:hidden}
+.abs{position:absolute}
+.hide{opacity:0}
+
+/* 背景 */
+#bg{position:absolute;inset:0;background:var(--bg)}
+.glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55}
+#g1{width:900px;height:900px;background:radial-gradient(circle,#1783FF 0%,transparent 65%)}
+#g2{width:700px;height:700px;background:radial-gradient(circle,#6B5BFF 0%,transparent 65%)}
+#grid{position:absolute;inset:-100px;background-image:
+  linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:64px 64px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%)}
+#vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.6) 100%);pointer-events:none}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+
+/* 场景 1：终端 */
+#term{left:50%;top:50%;width:980px;height:520px;margin:-290px 0 0 -490px;border-radius:22px;
+  background:rgba(14,17,26,.92);border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(23,131,255,.08);overflow:hidden}
+#term .bar{height:52px;display:flex;align-items:center;gap:10px;padding:0 22px;border-bottom:1px solid rgba(255,255,255,.06)}
+#term .dot{width:14px;height:14px;border-radius:50%}
+#term .ttl{flex:1;text-align:center;color:#6b7280;font-size:17px;margin-right:60px}
+#term .body{padding:34px 40px;font-size:30px;line-height:1.75}
+#term .p{color:#5AA8FF}
+.caret{display:inline-block;width:15px;height:34px;background:#fff;vertical-align:-6px;margin-left:3px}
+.tl{opacity:0}
+.ok{color:#16C456}
+.dim{color:#6b7280}
+#t1sub{left:0;right:0;top:872px;text-align:center;font-size:40px;font-weight:700;letter-spacing:2px}
+
+/* 场景 2 / 8：Logo */
+.face{position:absolute;background:var(--kimi);border-radius:9.5%/14%;box-shadow:0 30px 90px rgba(23,131,255,.45)}
+.face i{position:absolute;background:#fff;top:18%;width:12.5%;height:28%}
+#logo{left:50%;top:0;width:0;height:0}
+#logoFace{width:300px;height:200px;left:-150px;top:250px}
+#logoTitle{left:-800px;width:1600px;top:505px;text-align:center;font-size:118px;font-weight:900;letter-spacing:-2px;white-space:nowrap}
+#logoTitle b{color:var(--kimi)}
+#logoSub{left:-800px;width:1600px;top:680px;text-align:center;font-size:44px;font-weight:500;color:#C9D1DD;letter-spacing:4px}
+.shine{background:linear-gradient(100deg,#fff 40%,#9fd0ff 50%,#fff 60%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* 左侧文案 */
+.cap{position:absolute;left:170px;top:300px;width:820px}
+.cap .k{font-size:26px;font-weight:700;color:var(--kimi2);letter-spacing:6px;margin-bottom:26px}
+.cap .h{font-size:74px;font-weight:900;line-height:1.18;letter-spacing:-1px}
+.cap .h b{color:var(--kimi2)}
+.cap .s{margin-top:32px;font-size:32px;line-height:1.6;color:#AEB6C2;font-weight:500}
+.pill{display:inline-flex;align-items:center;gap:10px;margin-top:40px;padding:12px 24px;border-radius:999px;
+  background:rgba(23,131,255,.14);border:1px solid rgba(90,168,255,.35);color:#cfe4ff;font-size:24px;font-weight:700;margin-right:14px}
+
+/* 手机 */
+#phone{left:1128px;top:91px;width:426px;height:898px;border-radius:66px;background:#1b1d22;
+  box-shadow:0 0 0 2px #3a3d44,0 60px 140px rgba(0,0,0,.7),0 0 120px rgba(23,131,255,.25);padding:12px}
+#screen{position:relative;width:402px;height:874px;border-radius:55px;background:#fff;overflow:hidden;color:var(--ink)}
+.island{position:absolute;left:50%;top:11px;width:124px;height:36px;margin-left:-62px;background:#000;border-radius:20px;z-index:50}
+.sbar{position:absolute;left:0;right:0;top:0;height:54px;z-index:40;font-size:17px;font-weight:700;color:#000;display:flex;align-items:center;padding:6px 34px 0 50px}
+.sbar .r{margin-left:auto;display:flex;gap:6px;align-items:center}
+.homeind{position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;background:#111;border-radius:3px;z-index:60}
+.scr{position:absolute;inset:0}
+
+/* 欢迎页 */
+#wel{background:linear-gradient(135deg,rgba(23,131,255,.07),#fff 45%)}
+#welFace{width:108px;height:72px;left:147px;top:250px}
+#welText{position:absolute;left:0;right:0;top:370px;text-align:center}
+#welText div{font-size:23px;font-weight:700;margin-bottom:18px;min-height:32px}
+#welText .cmd{font-family:"JetBrains Mono",monospace;font-size:26px;font-weight:700}
+#welLogin{position:absolute;left:0;right:0;top:372px;text-align:center;font-size:30px;font-weight:900}
+#welLogin b{color:var(--kimi)}
+#welBtn{position:absolute;left:28px;right:28px;bottom:58px;height:56px;border-radius:28px;background:var(--kimi);color:#fff;
+  display:flex;align-items:center;justify-content:center;gap:10px;font-size:17px;font-weight:700}
+.spin{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff}
+
+/* 对话页 */
+#chat{background:#fff}
+.topbar{position:absolute;left:0;right:0;top:54px;height:56px;display:flex;align-items:center;padding:0 16px;z-index:20}
+.gbtn{width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.8);border:1px solid rgba(0,0,0,.06);
+  box-shadow:0 4px 14px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center}
+.topbar .t{flex:1;text-align:center;font-size:16px;font-weight:700}
+#body{position:absolute;left:0;right:0;top:110px;bottom:132px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding:0 18px;
+  mask-image:linear-gradient(transparent 0,#000 24px)}
+.it{overflow:hidden}
+.it>div{padding-top:12px}
+.ubub{margin-left:auto;max-width:300px;background:#F5F5F5;border-radius:20px;padding:11px 15px;font-size:16px;line-height:1.5;width:fit-content}
+.row{display:flex;align-items:center;gap:8px;font-size:14.5px;color:#6b7280}
+.row .n{color:#111;font-weight:500}
+.add{color:var(--add);font-weight:700}.del{color:var(--del);font-weight:700}
+.txt{font-size:16px;line-height:1.62;color:#111}
+code{font-family:"JetBrains Mono",monospace;font-size:14px;background:rgba(0,0,0,.05);border-radius:5px;padding:1px 5px}
+.shim{background:linear-gradient(90deg,#9aa0a8 30%,#111 50%,#9aa0a8 70%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+#hero{position:absolute;left:30px;right:30px;top:330px;text-align:center}
+#hero .face{position:relative;display:inline-block;width:60px;height:40px;box-shadow:none}
+#hero div{margin-top:18px;font-size:20px;font-weight:700;line-height:1.5}
+
+/* 确认卡片 */
+.appr{border-radius:22px;padding:16px;background:rgba(250,251,253,.96);border:1px solid rgba(0,0,0,.07);box-shadow:0 10px 30px rgba(0,0,0,.1)}
+.appr .hd{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
+.odot{width:7px;height:7px;border-radius:50%;background:#FF9500;margin:0 3px}
+.codebox{margin-top:12px;background:rgba(0,0,0,.04);border-radius:10px;padding:10px 12px;font-family:"JetBrains Mono",monospace;font-size:14px}
+.field{margin-top:8px;font-size:12.5px;color:#6b7280}
+.abtn{margin-top:8px;height:42px;border-radius:21px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;background:rgba(0,0,0,.05);color:#111}
+.abtn.pri{background:var(--kimi);color:#fff;margin-top:14px}
+
+/* 输入卡 */
+#composer{position:absolute;left:12px;right:12px;bottom:26px;height:100px;border-radius:26px;background:#fff;
+  border:1px solid rgba(0,0,0,.08);box-shadow:0 8px 30px rgba(0,0,0,.08);padding:14px 16px 0}
+#cText{font-size:16px;color:#111;height:24px;white-space:nowrap;overflow:hidden}
+#cText .ph{color:#aab0b8}
+.crow{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:center;gap:6px}
+.cbtn{width:36px;height:36px;border-radius:18px;background:rgba(0,0,0,.045);display:flex;align-items:center;justify-content:center}
+.model{margin-left:auto;margin-right:10px;font-size:14px;font-weight:700;color:#333}
+.model span{color:#9aa0a8;font-weight:500}
+#send{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center}
+.cursor{display:inline-block;width:2px;height:19px;background:var(--kimi);vertical-align:-3px;margin-left:1px}
+
+/* 侧栏 */
+#side{position:absolute;top:0;bottom:0;left:0;width:330px;background:#F7F8FA;z-index:30;padding:64px 18px 0}
+#side .brand{font-size:22px;font-weight:900;letter-spacing:1px}
+#side .brand b{color:var(--kimi)}
+.dev{margin-top:18px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:14px;padding:10px 12px;font-size:15px;font-weight:700}
+.gdot{width:8px;height:8px;border-radius:50%;background:#16C456;box-shadow:0 0 0 3px rgba(22,196,86,.18)}
+.addf{margin-top:14px;display:flex;align-items:center;gap:8px;font-size:14.5px;color:var(--kimi);font-weight:700;padding:6px 4px}
+.fold{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;padding:6px 4px}
+.fold .pl{margin-left:auto;width:26px;height:26px;border-radius:13px;background:rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center}
+.sess{display:flex;align-items:center;gap:10px;font-size:14.5px;color:#333;padding:9px 10px 9px 30px;border-radius:12px}
+.sess.sel{background:rgba(23,131,255,.1);color:var(--kimi);font-weight:700}
+.sess i{width:9px;height:9px;border-radius:50%;border:1.5px solid #b5bac2;flex:none}
+.sess.sel i{border-color:var(--kimi)}
+.me{position:absolute;left:18px;right:18px;bottom:30px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;border-top:1px solid rgba(0,0,0,.07);padding-top:16px}
+.av{width:36px;height:36px;border-radius:18px;background:linear-gradient(135deg,#5AA8FF,#1783FF)}
+#menu{position:absolute;left:30px;top:150px;width:270px;background:rgba(255,255,255,.98);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.2);padding:8px;z-index:35;transform-origin:30% 0}
+#menu .mi{display:flex;align-items:center;gap:10px;padding:11px 12px;font-size:15px;border-radius:12px}
+#menu .mi.on{background:rgba(23,131,255,.1)}
+#menu .mi small{margin-left:auto;font-size:12px;color:#16C456;font-weight:700}
+#menu .mi.off{color:#b5bac2}
+#menu .mi.off small{color:#b5bac2}
+#scrim{position:absolute;inset:0;background:rgba(0,0,0,.18);z-index:25}
+
+/* 点击指示 */
+#tap{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,255,255,.55);
+  border:3px solid rgba(23,131,255,.8);z-index:100;opacity:0;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+
+/* 功能墙 */
+#feat{left:0;right:0;top:0;bottom:0}
+#featH{left:0;right:0;top:150px;text-align:center;font-size:64px;font-weight:900}
+#featH b{color:var(--kimi2)}
+.tile{position:absolute;width:500px;height:210px;border-radius:32px;padding:34px 36px;
+  background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 30px 80px rgba(0,0,0,.35);backdrop-filter:blur(20px)}
+.tile .ic{width:56px;height:56px;border-radius:16px;background:rgba(23,131,255,.2);display:flex;align-items:center;justify-content:center}
+.tile .tt{position:absolute;left:112px;top:36px;font-size:34px;font-weight:900}
+.tile .ds{margin-top:26px;font-size:24px;line-height:1.5;color:#AEB6C2;font-weight:500}
+
+/* 片尾 */
+#end{left:0;right:0;top:0;bottom:0}
+#endFace{width:240px;height:160px;left:840px;top:190px}
+#endTitle{left:0;right:0;top:400px;text-align:center;font-size:110px;font-weight:900;letter-spacing:-2px}
+#endTitle b{color:var(--kimi)}
+#endSub{left:0;right:0;top:560px;text-align:center;font-size:44px;font-weight:500;color:#C9D1DD;letter-spacing:3px}
+#endPills{left:0;right:0;top:672px;text-align:center}
+#endPills .pill{margin:0 8px}
+#endUrl{left:0;right:0;top:830px;text-align:center;font-size:28px;color:#8b95a5;letter-spacing:1px}
+#preload{position:absolute;left:-9999px;top:0;opacity:.01}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"><div id="g1" class="glow"></div><div id="g2" class="glow"></div><div id="grid"></div></div>
+
+  <!-- 场景 1 -->
+  <div id="term" class="abs">
+    <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span><span class="ttl">~/code/web-app — zsh</span></div>
+    <div class="body mono">
+      <div><span class="p">~/code/web-app</span> <span class="dim">$</span> <span id="tcmd"></span><span id="tcaret" class="caret"></span></div>
+      <div class="tl" id="tl1"><span style="color:#5AA8FF">◆</span> Kimi Code Remote Control</div>
+      <div class="tl" id="tl2">&nbsp;&nbsp;<span class="dim">设备</span>&nbsp;&nbsp;MacBook-Pro.local</div>
+      <div class="tl" id="tl3">&nbsp;&nbsp;<span class="dim">状态</span>&nbsp;&nbsp;已连接到 code-rc.kimi.com <span class="ok">✓</span></div>
+      <div class="tl" id="tl4">&nbsp;&nbsp;<span class="dim">等待手机接入…</span></div>
+    </div>
+  </div>
+  <div id="t1sub" class="abs">在电脑上，运行一行命令。</div>
+
+  <!-- 场景 2 -->
+  <div id="logo" class="abs">
+    <div id="logoFace" class="face"><i class="e1"></i><i class="e2"></i></div>
+    <div id="logoTitle" class="abs">Kimi Code <b>Mobile</b></div>
+    <div id="logoSub" class="abs">然后，把它装进口袋。</div>
+  </div>
+
+  <!-- 左侧文案 -->
+  <div id="cap1" class="cap"><div class="k">01 · 接入</div><div class="h">登录账号，<br>就连上你的<b>电脑</b></div><div class="s">不扫码、不粘贴链接。<br>用 Kimi 账号登录，自动接入运行 kimi rc 的电脑。</div><span class="pill">支持 GO 及以上订阅</span></div>
+  <div id="cap2" class="cap"><div class="k">02 · 派活</div><div class="h">随手发任务，<br>实时看它<b>干活</b></div><div class="s">思考、读文件、改代码，<br>逐字流式呈现，每一步都清清楚楚。</div></div>
+  <div id="cap3" class="cap"><div class="k">03 · 把关</div><div class="h">关键操作，<br>由你<b>拍板</b></div><div class="s">运行命令、修改文件之前先问你：<br>批准、本会话内批准，或者拒绝。</div></div>
+  <div id="cap4" class="cap"><div class="k">04 · 切换</div><div class="h">多设备、多项目，<br>一个<b>侧栏</b>搞定</div><div class="s">设备、文件夹、会话一目了然，<br>在外面用蜂窝网络也一样能连。</div></div>
+
+  <!-- 手机 -->
+  <div id="phone" class="abs">
+    <div id="screen">
+      <div class="island"></div>
+      <div class="sbar"><span>9:41</span><span class="r">
+        <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM3.5 7a6.4 6.4 0 0 1 9 0l-1.4 1.4a4.4 4.4 0 0 0-6.2 0zM1.3 4.8a9.5 9.5 0 0 1 13.4 0l-1.4 1.4a7.5 7.5 0 0 0-10.6 0z"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="#000" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2"/><rect x="24.5" y="4.5" width="2" height="4" rx="1" opacity=".4"/></svg>
+      </span></div>
+
+      <!-- 欢迎 -->
+      <div id="wel" class="scr">
+        <div id="welFace" class="face" style="box-shadow:none"><i class="e1"></i><i class="e2"></i></div>
+        <div id="welText"><div id="w1"></div><div id="w2"></div><div id="w3" class="cmd"></div></div>
+        <div id="welLogin">Kimi Code <b>Mobile</b></div>
+        <div id="welBtn"><span id="welBtnSpin" class="spin"></span><span id="welBtnTxt">我已完成</span><span id="welBtnArrow"></span></div>
+      </div>
+
+      <!-- 对话 -->
+      <div id="chat" class="scr">
+        <div id="chatMain" class="scr">
+          <div class="topbar">
+            <div class="gbtn" id="menuBtn"></div>
+            <div class="t" id="chatTitle">web-app</div>
+            <div class="gbtn" id="moreBtn"></div>
+          </div>
+          <div id="hero"><span class="face"><i class="e1"></i><i class="e2"></i></span><div>你来啦，在 web-app 里<br>开始创造吧</div></div>
+          <div id="body">
+            <div class="it" id="iUser"><div><div class="ubub">把登录页的按钮改成圆角，顺便跑一下测试</div></div></div>
+            <div class="it" id="iThink"><div><div class="row"><span id="icBrain"></span><span id="thinkTxt">思考中…</span></div></div></div>
+            <div class="it" id="iR1"><div><div class="row"><span class="ic-doc"></span>读取 <span class="n">LoginView.swift</span></div></div></div>
+            <div class="it" id="iR2"><div><div class="row"><span class="ic-doc"></span>读取 <span class="n">Theme.swift</span></div></div></div>
+            <div class="it" id="iR3"><div><div class="row"><span class="ic-pen"></span>编辑 <span class="n">LoginView.swift</span> <span class="add">+3</span> <span class="del">−1</span></div></div></div>
+            <div class="it" id="iT1"><div><div class="txt" id="t1"></div></div></div>
+            <div class="it" id="iAppr"><div style="padding-bottom:4px"><div class="appr">
+              <div class="hd"><span class="odot"></span>运行命令?<span style="margin-left:auto" class="ic-chev"></span></div>
+              <div class="codebox">npm run test</div>
+              <div class="field">工作目录：~/code/web-app</div>
+              <div class="abtn pri" id="apprOk">批准</div>
+              <div class="abtn">本会话内批准</div>
+              <div class="abtn">拒绝</div>
+            </div></div></div>
+            <div class="it" id="iR4"><div><div class="row"><span id="r4ic"></span>运行 <span class="n">npm run test</span> <span id="r4res" style="color:#16C456;font-weight:700"></span></div></div></div>
+            <div class="it" id="iT2"><div style="padding-bottom:6px"><div class="txt" id="t2"></div></div></div>
+          </div>
+          <div id="composer">
+            <div id="cText"></div>
+            <div class="crow">
+              <div class="cbtn" id="cPlus"></div><div class="cbtn" id="cPerm"></div>
+              <div class="model">K3 <span>· Low</span></div>
+              <div id="send"></div>
+            </div>
+          </div>
+        </div>
+        <div id="scrim"></div>
+        <div id="side">
+          <div class="brand">KIMI <b>CODE</b></div>
+          <div class="dev" id="devPill"><span id="devIc"></span><span id="devName">MacBook Pro</span><span class="gdot" style="margin-left:6px"></span><span style="margin-left:auto" class="ic-chev"></span></div>
+          <div class="addf"><span class="ic-fplus"></span>添加文件夹</div>
+          <div class="fold"><span class="ic-folder"></span>web-app<span class="pl ic-plus-s"></span></div>
+          <div class="sess sel"><i></i>登录页按钮改圆角</div>
+          <div class="sess"><i></i>修复支付回调超时</div>
+          <div class="sess"><i></i>首页性能排查</div>
+          <div class="fold"><span class="ic-folder"></span>kimicode-mobile<span class="pl ic-plus-s"></span></div>
+          <div class="sess"><i></i>Transcript 增量应用</div>
+          <div class="sess"><i></i>侧栏交互打磨</div>
+          <div class="fold"><span class="ic-folder"></span>blog<span class="pl ic-plus-s"></span></div>
+          <div class="me"><span class="av"></span>Kimi 用户<span style="margin-left:auto" class="ic-out"></span></div>
+          <div id="menu">
+            <div class="mi on"><span class="ic-lap"></span>MacBook Pro<small>在线</small></div>
+            <div class="mi"><span class="ic-lap"></span>Mac mini<small>在线</small></div>
+            <div class="mi off"><span class="ic-lap"></span>Linux 工作站<small>离线</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="homeind"></div>
+    </div>
+  </div>
+
+  <!-- 功能墙 -->
+  <div id="feat" class="abs">
+    <div id="featH" class="abs">网页端能做的，现在都在<b>手机上</b></div>
+  </div>
+
+  <!-- 片尾 -->
+  <div id="end" class="abs">
+    <div id="endFace" class="face"><i class="e1"></i><i class="e2"></i></div>
+    <div id="endTitle" class="abs">Kimi Code <b>Mobile</b></div>
+    <div id="endSub" class="abs">在手机上，接管电脑里的 Kimi Code</div>
+    <div id="endPills" class="abs"><span class="pill">iOS 26 原生</span><span class="pill">GO 及以上订阅</span><span class="pill mono">kimi rc</span></div>
+    <div id="endUrl" class="abs mono">github.com/qkunio/kimicode-mobile</div>
+  </div>
+
+  <div id="tap"></div>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+  <div id="preload"></div>
+</div>
+
+<script>
+// ---------- 图标（SF Symbols 风格的简化 SVG） ----------
+const I = {
+  menu:c=>`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h9"/></svg>`,
+  more:c=>`<svg width="20" height="20" viewBox="0 0 20 20" fill="${c}"><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="16" cy="10" r="1.8"/></svg>`,
+  plus:(c,s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 18 18" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"><path d="M9 3v12M3 9h12"/></svg>`,
+  bolt:c=>`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="${c}" stroke-width="1.7" stroke-linejoin="round"><path d="M9 1.8 3 4v5c0 3.6 2.6 6.4 6 7.2 3.4-.8 6-3.6 6-7.2V4z"/><path d="M9.8 5 7 9.6h2.4L8.4 13l3-4.8H9z" fill="${c}" stroke="none"/></svg>`,
+  up:c=>`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15V3M4 8l5-5 5 5"/></svg>`,
+  stop:c=>`<svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="12" rx="2.5" fill="${c}"/></svg>`,
+  brain:c=>`<svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="${c}" stroke-width="1.5"><path d="M7 3a2.5 2.5 0 0 0-2.4 3A2.6 2.6 0 0 0 3.5 10.8 2.5 2.5 0 0 0 7 15V3zM11 3a2.5 2.5 0 0 1 2.4 3 2.6 2.6 0 0 1 1.1 4.8A2.5 2.5 0 0 1 11 15V3z"/></svg>`,
+  doc:c=>`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="${c}" stroke-width="1.5"><path d="M4 1.5h5l3.5 3.5v9.5H4z"/><path d="M9 1.5V5h3.5"/></svg>`,
+  pen:c=>`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"><path d="M10.5 2.5l3 3L6 13H3v-3z"/></svg>`,
+  term:c=>`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="${c}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M4.5 6.5 7 8.5l-2.5 2M8.5 11h3"/></svg>`,
+  check:(c,s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.5 12 13 4.5"/></svg>`,
+  chev:c=>`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5 7 9l3.5-3.5"/></svg>`,
+  folder:c=>`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"><path d="M1.8 4.5a1.5 1.5 0 0 1 1.5-1.5h3.6l1.8 2h6a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H3.3a1.5 1.5 0 0 1-1.5-1.5z"/></svg>`,
+  fplus:c=>`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M1.8 4.5a1.5 1.5 0 0 1 1.5-1.5h3.6l1.8 2h6a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H3.3a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 7.8v4.4M6.8 10h4.4"/></svg>`,
+  lap:c=>`<svg width="20" height="18" viewBox="0 0 20 18" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"><rect x="3.5" y="3" width="13" height="9" rx="1.5"/><path d="M1 14.5h18"/></svg>`,
+  out:c=>`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="${c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H4.5A1.5 1.5 0 0 0 3 4.5v11A1.5 1.5 0 0 0 4.5 17H8M13 6l4 4-4 4M17 10H8"/></svg>`,
+  arrow:c=>`<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h12M10 4l5 5-5 5"/></svg>`,
+  globe:c=>`<svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="${c}" stroke-width="2.2"><circle cx="15" cy="15" r="11"/><path d="M4 15h22M15 4c3.5 3.5 3.5 18.5 0 22M15 4c-3.5 3.5-3.5 18.5 0 22"/></svg>`,
+  lock:c=>`<svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"><rect x="6" y="13" width="18" height="13" rx="3"/><path d="M10 13V9a5 5 0 0 1 10 0v4"/></svg>`,
+  swift:c=>`<svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"><rect x="4" y="4" width="22" height="22" rx="6"/><path d="M9 11l6 4-6 4M16 20h5"/></svg>`,
+  cpu:c=>`<svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="8" width="14" height="14" rx="2.5"/><path d="M12 4v4M18 4v4M12 22v4M18 22v4M4 12h4M4 18h4M22 12h4M22 18h4"/></svg>`,
+  photo:c=>`<svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"><rect x="4" y="6" width="22" height="18" rx="3"/><circle cx="11" cy="12" r="2"/><path d="M4 21l7-6 5 4 4-3 6 5"/></svg>`,
+  hand:c=>`<svg width="30" height="30" viewBox="0 0 30 30"><rect x="7" y="7" width="16" height="16" rx="3.5" fill="${c}"/></svg>`,
+};
+const $ = id => document.getElementById(id);
+const setHTML = (sel, html) => document.querySelectorAll(sel).forEach(e => e.innerHTML = html);
+$('menuBtn').innerHTML = I.menu('#111'); $('moreBtn').innerHTML = I.more('#111');
+$('cPlus').innerHTML = I.plus('#333'); $('cPerm').innerHTML = I.bolt('#333');
+$('icBrain').innerHTML = I.brain('#8a8f98');
+setHTML('.ic-doc', I.doc('#8a8f98')); setHTML('.ic-pen', I.pen('#8a8f98'));
+setHTML('.ic-chev', I.chev('#9aa0a8')); setHTML('.ic-folder', I.folder('#555'));
+setHTML('.ic-fplus', I.fplus('#1783FF')); setHTML('.ic-plus-s', I.plus('#555', 13));
+setHTML('.ic-lap', I.lap('#333')); setHTML('.ic-out', I.out('#8a8f98'));
+$('devIc').innerHTML = I.lap('#333'); $('welBtnArrow').innerHTML = I.arrow('#fff');
+
+// 功能墙
+const FEATS = [
+  ['swift','iOS 原生','SwiftUI + Liquid Glass，<br>不是网页套壳'],
+  ['globe','随时随地','走官方中转，<br>蜂窝网络也能连'],
+  ['lock','安全可靠','凭证只存 Keychain，<br>本机 token 永不离机'],
+  ['cpu','模型随心换','Kimi 订阅模型与<br>思考强度一键切换'],
+  ['photo','图片与文件','拍张图、传个文件，<br>直接交给 Kimi'],
+  ['hand','随时叫停','一键中断，<br>任务始终在你掌控之中'],
+];
+FEATS.forEach(([ic, t, d], i) => {
+  const el = document.createElement('div');
+  el.className = 'tile'; el.id = 'tile' + i;
+  el.style.left = (170 + (i % 3) * 540) + 'px';
+  el.style.top = (330 + Math.floor(i / 3) * 250) + 'px';
+  el.innerHTML = `<div class="ic">${I[ic]('#5AA8FF')}</div><div class="tt">${t}</div><div class="ds">${d}</div>`;
+  $('feat').appendChild(el);
+});
+
+// ---------- 时间工具 ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3);
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eback = x => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+const css = (el, o) => { el = typeof el === 'string' ? $(el) : el; for (const k in o) el.style[k] = o[k]; };
+const vis = (el, v) => css(el, { display: v ? '' : 'none' });
+
+// ---------- 时间线（秒）与音效提示 ----------
+const DUR = 42;
+const CUES = [];
+const cue = (t, s, v = 1) => CUES.push([+t.toFixed(3), s, v]);
+
+// 场景 1：终端
+const T_CMD = 'kimi rc', T_CMD0 = .75, T_CMD_DT = .11;
+[...T_CMD].forEach((_, i) => cue(T_CMD0 + i * T_CMD_DT, 'key'));
+cue(1.72, 'enter');
+[2.05, 2.35, 2.65].forEach(t => cue(t, 'tick', .7));
+cue(2.95, 'blip');
+cue(3.85, 'whoosh');
+// 场景 2：Logo
+cue(4.35, 'impact'); cue(4.8, 'shimmer'); cue(5.9, 'tick', .5);
+cue(7.95, 'whoosh');
+// 场景 3：欢迎 → 登录
+const W1 = '欢迎来到Kimi Code Mobile！', W2 = '使用前，请在你的终端上运行', W3 = 'kimi rc';
+const W0 = 9.35, WDT = .042, WN = W1.length + W2.length + W3.length;
+for (let i = 0; i < WN; i += 2) cue(W0 + i * WDT, 'type', .45);
+cue(8.55, 'swoosh_up');
+cue(11.55, 'tap'); cue(12.55, 'tap'); cue(13.45, 'success');
+cue(13.65, 'swoosh');
+// 场景 4：派活
+const MSG = '把登录页的按钮改成圆角，顺便跑一下测试', M0 = 14.45, MDT = .1;
+[...MSG].forEach((_, i) => cue(M0 + i * MDT, 'type', .7));
+cue(16.75, 'tap'); cue(16.8, 'send');
+cue(17.25, 'tick', .6); cue(18.45, 'tick'); cue(18.95, 'tick'); cue(19.45, 'tick');
+const TX1 = '已经把登录按钮改成胶囊圆角，高度统一为 56pt。接下来跑一下测试，确认没有回归。', TX1_0 = 19.95, TX1_DT = .038;
+for (let i = 0; i < TX1.length; i += 3) cue(TX1_0 + i * TX1_DT, 'stream', .35);
+// 场景 5：确认
+cue(21.85, 'notify');
+cue(23.75, 'tap'); cue(23.85, 'approve');
+cue(24.25, 'tick', .6); cue(25.35, 'success');
+const TX2 = '42 项测试全部通过，改动已完成。', TX2_0 = 25.6, TX2_DT = .045;
+for (let i = 0; i < TX2.length; i += 3) cue(TX2_0 + i * TX2_DT, 'stream', .35);
+// 场景 6：侧栏
+cue(27.9, 'tap'); cue(28.0, 'swoosh');
+cue(29.3, 'tap'); cue(29.4, 'pop');
+cue(30.55, 'tap', .7); cue(30.6, 'pop', .6);
+cue(32.2, 'whoosh');
+// 场景 7：功能墙
+cue(32.7, 'shimmer', .6);
+for (let i = 0; i < 6; i++) cue(33.4 + i * .18, 'pop', .8);
+cue(36.85, 'riser');
+// 场景 8：片尾
+cue(37.45, 'impact'); cue(37.5, 'shimmer'); cue(40.2, 'blip', .6);
+
+// 分段标记给背景音乐
+const MARKS = { musicIn: 3.9, drop: 4.35, outroHit: 37.45, end: DUR };
+
+// ---------- 渲染 ----------
+function face(el, t, glanceAt = [], blinkAt = []) {
+  let g = 0; for (const [a, b] of glanceAt) if (t > a && t < b) g = 1;
+  let bl = 1; for (const a of blinkAt) if (t > a && t < a + .14) bl = .15;
+  const eyes = el.querySelectorAll('i');
+  eyes[0].style.left = (36 + g * 8) + '%'; eyes[1].style.left = (73.5 + g * 8) + '%';
+  eyes.forEach(e => e.style.transform = `scaleY(${bl})`);
+}
+function typed(s, t, t0, dt) { const n = Math.floor(clamp((t - t0) / dt, 0, s.length)); return s.slice(0, n); }
+const heights = {};
+function item(id, p, auto = false) {
+  const el = $(id);
+  if (p <= 0) { css(el, { height: '0px', opacity: 0 }); return; }
+  if (p >= 1 || auto) { css(el, { height: auto && p < 1 ? heights[id] * eo(p) + 'px' : 'auto', opacity: 1, transform: 'none' }); return; }
+  css(el, { height: heights[id] * eo(p) + 'px', opacity: eo(p), transform: `translateY(${(1 - eo(p)) * 10}px)` });
+}
+function tap(t, t0, x, y) {
+  // x,y：屏幕坐标（phone screen 内）
+  const p = P(t, t0 - .25, t0 + .35);
+  const el = $('tap');
+  if (p <= 0 || p >= 1) { el.style.opacity = 0; return false; }
+  const r = $('screen').getBoundingClientRect(), s = phoneScale;
+  const press = t < t0 ? 1 - P(t, t0 - .25, t0) * .25 : .75 + P(t, t0, t0 + .35) * .6;
+  css(el, { left: r.left + x * s + 'px', top: r.top + y * s + 'px', opacity: t < t0 ? P(t, t0 - .25, t0 - .1) : 1 - P(t, t0 + .05, t0 + .35), transform: `scale(${press})` });
+  return true;
+}
+function caption(id, t, a, b) {
+  const pin = eo(P(t, a, a + .6)), pout = eio(P(t, b - .45, b));
+  const el = $(id);
+  if (t < a || t > b) { el.style.opacity = 0; return; }
+  css(el, { opacity: pin * (1 - pout), transform: `translateY(${(1 - pin) * 40 - pout * 30}px)` });
+  [...el.children].forEach((c, i) => {
+    const q = eo(P(t, a + i * .09, a + .6 + i * .09));
+    css(c, { opacity: q, transform: `translateX(${(1 - q) * -30}px)` });
+  });
+}
+let phoneScale = 1;
+
+function render(t) {
+  // 背景光晕缓慢漂移
+  css('g1', { left: (-150 + Math.sin(t * .25) * 120 + (t > 8.5 && t < 32.5 ? 700 : 0) * eio(P(t, 8, 9.5)) * (1 - eio(P(t, 32, 33.5)))) + 'px', top: (200 + Math.cos(t * .2) * 80) + 'px' });
+  css('g2', { left: (1250 + Math.cos(t * .22) * 140) + 'px', top: (-250 + Math.sin(t * .3) * 90) + 'px', opacity: .35 });
+  css('grid', { transform: `translateY(${(t * 12) % 64}px)` });
+
+  // 闪白
+  const fl = Math.max(0, 1 - P(t, 4.35, 4.75)) * (t >= 4.35 ? .5 : 0) + Math.max(0, 1 - P(t, 37.45, 37.9)) * (t >= 37.45 ? .45 : 0);
+  $('flash').style.opacity = fl;
+
+  // ---- 场景 1 ----
+  {
+    const on = t < 4.4; vis('term', on); vis('t1sub', on && t > 2.8);
+    if (on) {
+      const pin = eo(P(t, 0, .6)), pout = eio(P(t, 3.8, 4.35));
+      css('term', { opacity: pin * (1 - pout), transform: `scale(${lerp(.94, 1, pin) * (1 - pout * .25)}) translateY(${-pout * 40}px)`, filter: `blur(${pout * 8}px)` });
+      $('tcmd').textContent = typed(T_CMD, t, T_CMD0, T_CMD_DT);
+      $('tcaret').style.opacity = (t < 1.72 ? (Math.floor(t * 2.2) % 2 ? .2 : 1) : 0);
+      [2.05, 2.35, 2.65, 2.95].forEach((a, i) => { const q = eo(P(t, a, a + .25)); css('tl' + (i + 1), { opacity: q, transform: `translateX(${(1 - q) * -14}px)` }); });
+      const q = eo(P(t, 2.95, 3.4));
+      css('t1sub', { opacity: q * (1 - pout), transform: `translateY(${(1 - q) * 20}px)` });
+    }
+  }
+  // ---- 场景 2 ----
+  {
+    const on = t > 4.2 && t < 8.6; vis('logo', on);
+    if (on) {
+      const pf = eback(P(t, 4.35, 4.95)), pout = eio(P(t, 7.9, 8.5));
+      css('logoFace', { transform: `scale(${pf * (1 - pout * .4)}) rotate(${(1 - P(t, 4.35, 4.95)) * -12}deg)`, opacity: 1 - pout });
+      face($('logoFace'), t, [[5.2, 5.9]], [6.2, 7.3]);
+      const pt = eo(P(t, 4.8, 5.5));
+      css('logoTitle', { opacity: pt * (1 - pout), transform: `translateY(${(1 - pt) * 50 - pout * 30}px)`, letterSpacing: lerp(18, -2, pt) + 'px' });
+      const ps = eo(P(t, 5.6, 6.2));
+      css('logoSub', { opacity: ps * (1 - pout), transform: `translateY(${(1 - ps) * 30 - pout * 30}px)` });
+    }
+  }
+  // ---- 左侧文案 ----
+  caption('cap1', t, 8.8, 13.9);
+  caption('cap2', t, 14.2, 21.5);
+  caption('cap3', t, 21.6, 27.6);
+  caption('cap4', t, 27.7, 32.4);
+
+  // ---- 手机 ----
+  {
+    const on = t > 8.4 && t < 33; vis('phone', on);
+    if (on) {
+      const pin = eo(P(t, 8.5, 9.4)), pout = eio(P(t, 32.1, 32.8));
+      phoneScale = 1;
+      css('phone', { transform: `translateY(${(1 - pin) * 900 + pout * 1000}px) rotate(${(1 - pin) * 8 - pout * 6}deg)`, opacity: 1 });
+      // 欢迎页
+      const toChat = eio(P(t, 13.65, 14.2));
+      vis('wel', t < 14.2); vis('chat', t > 13.6);
+      css('wel', { transform: `translateX(${-toChat * 120}px)`, opacity: 1 - toChat });
+      css('chat', { transform: `translateX(${(1 - toChat) * 402}px)` });
+      face($('welFace'), t, [[10.4, 11]], [11.3, 12.4]);
+      const login = t > 11.65;
+      vis('welText', !login); vis('welLogin', login);
+      if (!login) {
+        let n = Math.floor(clamp((t - W0) / WDT, 0, WN));
+        $('w1').innerHTML = W1.slice(0, n).replace('Kimi Code', '<span style="color:#1783FF">Kimi Code</span>').replace('Mobile', '<span style="color:#1783FF">Mobile</span>');
+        n -= W1.length; $('w2').textContent = n > 0 ? W2.slice(0, n) : '';
+        n -= W2.length; $('w3').textContent = n > 0 ? W3.slice(0, n) : '';
+      } else {
+        const q = eo(P(t, 11.65, 12.05));
+        css('welLogin', { opacity: q, transform: `scale(${lerp(.9, 1, q)})` });
+      }
+      css('welFace', { transform: `translateY(${login ? -eo(P(t, 11.65, 12.05)) * 20 : 0}px) scale(1)` });
+      const pb = eo(P(t, 11.05, 11.4));
+      const signing = t > 12.6 && t < 13.5;
+      $('welBtnTxt').textContent = signing ? '正在登录…' : (login ? '登录 Kimi 账号' : '我已完成');
+      vis('welBtnSpin', signing); vis('welBtnArrow', !signing);
+      $('welBtnSpin').style.transform = `rotate(${t * 720}deg)`;
+      const pressed = (t > 11.45 && t < 11.7) || (t > 12.45 && t < 12.7);
+      css('welBtn', { opacity: pb, transform: `translateY(${(1 - pb) * 16}px) scale(${pressed ? .96 : 1})`, background: signing ? '#4c9fff' : '#1783FF' });
+
+      // 对话页
+      face(document.querySelector('#hero .face'), t, [[15, 15.6]], [14.9]);
+      const heroOut = P(t, 16.8, 17.1);
+      css('hero', { opacity: (1 - heroOut), transform: `translateY(${-heroOut * 20}px)` });
+      let ctext = typed(MSG, t, M0, MDT);
+      const sent = t > 16.8;
+      if (sent) ctext = '';
+      $('cText').innerHTML = ctext ? ctext + '<span class="cursor"></span>' : (t > 14.3 && t < 16.8 ? '<span class="cursor"></span>' : '<span class="ph">让 Kimi 做点什么…</span>');
+      const busy = t > 16.8 && t < 26.7;
+      $('send').innerHTML = busy ? I.stop('#fff') : I.up(ctext ? '#fff' : '#fff');
+      css('send', { background: busy ? '#111' : (ctext ? '#1783FF' : '#c9ced6'), transform: `scale(${(t > 16.65 && t < 16.85) ? .88 : 1})` });
+
+      item('iUser', P(t, 16.8, 17.2));
+      item('iThink', P(t, 17.25, 17.55));
+      const thinking = t < 18.4;
+      $('thinkTxt').className = thinking ? 'shim' : '';
+      $('thinkTxt').style.backgroundPosition = `${100 - (t * 60 % 100) * 1.5}% 0`;
+      $('thinkTxt').textContent = thinking ? '思考中…' : '思考了 1 秒';
+      item('iR1', P(t, 18.45, 18.75)); item('iR2', P(t, 18.95, 19.25)); item('iR3', P(t, 19.45, 19.75));
+      item('iT1', P(t, 19.95, 20.1), true);
+      $('t1').innerHTML = typed(TX1, t, TX1_0, TX1_DT).replace('56pt', '<code>56pt</code>');
+      // 确认卡片：出现，点批准后收起
+      const pa = P(t, 21.85, 22.3), pc = P(t, 24.0, 24.35);
+      const ea = $('iAppr');
+      if (pa <= 0) css(ea, { height: '0px', opacity: 0 });
+      else css(ea, { height: heights.iAppr * eo(pa) * (1 - eio(pc)) + 'px', opacity: eo(pa) * (1 - pc), transform: `translateY(${(1 - eo(pa)) * 40}px) scale(${1 - pc * .05})` });
+      css('apprOk', { transform: `scale(${t > 23.6 && t < 23.9 ? .96 : 1})`, background: t > 23.75 ? '#0f6fe0' : '' });
+      item('iR4', P(t, 24.25, 24.55));
+      const done = t > 25.35;
+      $('r4ic').innerHTML = done ? I.check('#16C456') : I.term('#8a8f98');
+      $('r4res').textContent = done ? '42 passed' : '';
+      item('iT2', P(t, 25.6, 25.75), true);
+      $('t2').textContent = typed(TX2, t, TX2_0, TX2_DT);
+      // 标题
+      $('chatTitle').textContent = t > 17.5 ? '登录页按钮改圆角' : 'web-app';
+      css('chatTitle', { opacity: t > 17.5 ? eo(P(t, 17.5, 17.9)) : 1 });
+
+      // 侧栏
+      const ps = eio(P(t, 28.0, 28.5));
+      vis('side', ps > 0); vis('scrim', ps > 0);
+      css('side', { transform: `translateX(${(ps - 1) * 330}px)` });
+      css('chatMain', { transform: `translateX(${ps * 330}px)` });
+      css('scrim', { opacity: ps, transform: `translateX(${ps * 330}px)` });
+      css('menuBtn', { transform: `scale(${t > 27.75 && t < 28 ? .88 : 1})` });
+      const pm = P(t, 29.4, 29.65) * (1 - P(t, 30.6, 30.8));
+      vis('menu', pm > 0);
+      css('menu', { opacity: eo(pm), transform: `scale(${lerp(.85, 1, eback(clamp(pm)))})` });
+      document.querySelectorAll('#side .sess, #side .fold').forEach((e, i) => {
+        const q = eo(P(t, 28.2 + i * .05, 28.6 + i * .05)); css(e, { opacity: q, transform: `translateX(${(1 - q) * -20}px)` });
+      });
+
+      // 点击指示
+      let shown = false;
+      for (const [a, x, y] of [[11.55, 201, 790], [12.55, 201, 790], [16.75, 360, 820], [23.75, 180, 0], [27.9, 38, 82], [29.3, 150, 125], [30.55, 150, 185]]) {
+        let yy = y;
+        if (a === 23.75) { const r = $('apprOk').getBoundingClientRect(), s = $('screen').getBoundingClientRect(); yy = r.top - s.top + r.height / 2; }
+        if (tap(t, a, x, yy)) { shown = true; break; }
+      }
+      if (!shown) $('tap').style.opacity = 0;
+    } else $('tap').style.opacity = 0;
+  }
+  // ---- 场景 7 ----
+  {
+    const on = t > 32.4 && t < 37.6; vis('feat', on);
+    if (on) {
+      const pout = eio(P(t, 36.9, 37.45));
+      const ph = eo(P(t, 32.7, 33.3));
+      css('featH', { opacity: ph * (1 - pout), transform: `translateY(${(1 - ph) * 40}px)` });
+      FEATS.forEach((_, i) => {
+        const q = P(t, 33.4 + i * .18, 33.9 + i * .18);
+        css('tile' + i, { opacity: eo(q) * (1 - pout), transform: `translateY(${(1 - eo(q)) * 60}px) scale(${lerp(.9, 1, eback(q)) * (1 - pout * .1)})`, filter: `blur(${pout * 10}px)` });
+      });
+    }
+  }
+  // ---- 场景 8 ----
+  {
+    const on = t > 37.3; vis('end', on);
+    if (on) {
+      const pf = eback(P(t, 37.45, 38.05));
+      css('endFace', { transform: `scale(${pf})` });
+      face($('endFace'), t, [[38.6, 39.3]], [39.8, 41.2]);
+      const pt = eo(P(t, 37.8, 38.5)); css('endTitle', { opacity: pt, transform: `translateY(${(1 - pt) * 40}px)` });
+      $('endTitle').style.letterSpacing = lerp(14, -2, pt) + 'px';
+      const ps = eo(P(t, 38.5, 39.1)); css('endSub', { opacity: ps, transform: `translateY(${(1 - ps) * 30}px)` });
+      document.querySelectorAll('#endPills .pill').forEach((e, i) => { const q = eo(P(t, 39.2 + i * .15, 39.7 + i * .15)); css(e, { opacity: q, transform: `translateY(${(1 - q) * 20}px)` }); });
+      const pu = eo(P(t, 40.2, 40.7)); css('endUrl', { opacity: pu });
+      const fade = P(t, 41.3, 42); $('stage').style.opacity = 1 - fade;
+    } else $('stage').style.opacity = 1;
+  }
+  // logo 字光
+  document.querySelectorAll('#logoTitle, #endTitle').forEach(e => { });
+}
+
+// 初始化：测量对话条目自然高度
+function measure() {
+  vis('phone', true); vis('chat', true);
+  $('t1').innerHTML = TX1.replace('56pt', '<code>56pt</code>'); $('t2').textContent = TX2;
+  $('r4ic').innerHTML = I.check('#16C456'); $('r4res').textContent = '42 passed';
+  for (const id of ['iUser', 'iThink', 'iR1', 'iR2', 'iR3', 'iT1', 'iAppr', 'iR4', 'iT2']) { $(id).style.height = 'auto'; heights[id] = $(id).getBoundingClientRect().height; }
+}
+$('preload').textContent = [W1, W2, W3, MSG, TX1, TX2, '正在登录…登录 Kimi 账号我已完成思考中了秒1 42 passed', FEATS.map(f => f[1] + f[2]).join('')].join('');
+
+window.DUR = DUR; window.CUES = CUES; window.MARKS = MARKS;
+window.ready = document.fonts.ready.then(() => new Promise(r => setTimeout(r, 300))).then(() => { measure(); render(0); return true; });
+window.seek = t => render(t);
+
+// 直接用浏览器打开时实时预览
+if (!navigator.webdriver) {
+  window.ready.then(() => { const t0 = performance.now(); const loop = () => { render(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); }; loop(); });
+}
+</script>
+</body>
+</html>
