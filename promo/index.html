@@ -177,6 +177,28 @@ code{font-family:"JetBrains Mono",monospace;font-size:14px;background:rgba(0,0,0
 #endPills .pill{margin:0 8px}
 #endUrl{left:0;right:0;top:830px;text-align:center;font-size:28px;color:#8b95a5;letter-spacing:1px}
 #preload{position:absolute;left:-9999px;top:0;opacity:.01}
+
+/* ---------- 竖屏 9:16（?portrait） ---------- */
+html.portrait,html.portrait body{width:1080px;height:1920px}
+.portrait #term{width:960px;height:560px;margin:-330px 0 0 -480px}
+.portrait #term .body{font-size:29px}
+.portrait #t1sub{top:1320px;font-size:46px}
+.portrait #logoFace{top:560px}
+.portrait #logoTitle{top:830px;font-size:104px}
+.portrait #logoSub{top:1000px;font-size:46px}
+.portrait .cap{left:0;right:0;width:auto;top:120px;text-align:center}
+.portrait .cap .h{font-size:76px}
+.portrait .cap .s{font-size:34px;margin-top:26px}
+.portrait .cap .pill{margin-top:26px}
+.portrait #phone{left:327px;top:640px;transform-origin:50% 0}
+.portrait #featH{top:230px;font-size:72px;line-height:1.3;padding:0 90px}
+.portrait .tile{width:440px;height:230px}
+.portrait .tile .ds{font-size:25px}
+.portrait #endFace{left:420px;top:520px}
+.portrait #endTitle{top:760px;font-size:100px}
+.portrait #endSub{top:920px;font-size:46px}
+.portrait #endPills{top:1030px}
+.portrait #endUrl{top:1240px}
 </style>
 </head>
 <body>
@@ -335,6 +357,8 @@ const I = {
   photo:c=>`<svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"><rect x="4" y="6" width="22" height="18" rx="3"/><circle cx="11" cy="12" r="2"/><path d="M4 21l7-6 5 4 4-3 6 5"/></svg>`,
   hand:c=>`<svg width="30" height="30" viewBox="0 0 30 30"><rect x="7" y="7" width="16" height="16" rx="3.5" fill="${c}"/></svg>`,
 };
+const PORTRAIT = location.search.includes('portrait');
+if (PORTRAIT) document.documentElement.classList.add('portrait');
 const $ = id => document.getElementById(id);
 const setHTML = (sel, html) => document.querySelectorAll(sel).forEach(e => e.innerHTML = html);
 $('menuBtn').innerHTML = I.menu('#111'); $('moreBtn').innerHTML = I.more('#111');
@@ -358,8 +382,8 @@ const FEATS = [
 FEATS.forEach(([ic, t, d], i) => {
   const el = document.createElement('div');
   el.className = 'tile'; el.id = 'tile' + i;
-  el.style.left = (170 + (i % 3) * 540) + 'px';
-  el.style.top = (330 + Math.floor(i / 3) * 250) + 'px';
+  el.style.left = (PORTRAIT ? 80 + (i % 2) * 480 : 170 + (i % 3) * 540) + 'px';
+  el.style.top = (PORTRAIT ? 560 + Math.floor(i / 2) * 290 : 330 + Math.floor(i / 3) * 250) + 'px';
   el.innerHTML = `<div class="ic">${I[ic]('#5AA8FF')}</div><div class="tt">${t}</div><div class="ds">${d}</div>`;
   $('feat').appendChild(el);
 });
@@ -460,12 +484,13 @@ function caption(id, t, a, b) {
     css(c, { opacity: q, transform: `translateX(${(1 - q) * -30}px)` });
   });
 }
-let phoneScale = 1;
+let phoneScale = PORTRAIT ? 1.26 : 1;
+if (PORTRAIT) $('featH').innerHTML = '网页端能做的，<br>现在都在<b>手机上</b>';
 
 function render(t) {
   // 背景光晕缓慢漂移
-  css('g1', { left: (-150 + Math.sin(t * .25) * 120 + (t > 8.5 && t < 32.5 ? 700 : 0) * eio(P(t, 8, 9.5)) * (1 - eio(P(t, 32, 33.5)))) + 'px', top: (200 + Math.cos(t * .2) * 80) + 'px' });
-  css('g2', { left: (1250 + Math.cos(t * .22) * 140) + 'px', top: (-250 + Math.sin(t * .3) * 90) + 'px', opacity: .35 });
+  css('g1', { left: (PORTRAIT ? 90 : 0) + (-150 + Math.sin(t * .25) * 120 + (t > 8.5 && t < 32.5 ? (PORTRAIT ? 0 : 700) : 0) * eio(P(t, 8, 9.5)) * (1 - eio(P(t, 32, 33.5)))) + 'px', top: (200 + Math.cos(t * .2) * 80) + 'px' });
+  css('g2', { left: (PORTRAIT ? -600 : 0) + (1250 + Math.cos(t * .22) * 140) + 'px', top: (-250 + Math.sin(t * .3) * 90) + 'px', opacity: .35 });
   css('grid', { transform: `translateY(${(t * 12) % 64}px)` });
 
   // 闪白
@@ -509,8 +534,8 @@ function render(t) {
     const on = t > 8.4 && t < 33; vis('phone', on);
     if (on) {
       const pin = eo(P(t, 8.5, 9.4)), pout = eio(P(t, 32.1, 32.8));
-      phoneScale = 1;
-      css('phone', { transform: `translateY(${(1 - pin) * 900 + pout * 1000}px) rotate(${(1 - pin) * 8 - pout * 6}deg)`, opacity: 1 });
+      const drop = PORTRAIT ? 1400 : 1000;
+      css('phone', { transform: `translateY(${(1 - pin) * drop * .9 + pout * drop}px) rotate(${(1 - pin) * 8 - pout * 6}deg) scale(${phoneScale})`, opacity: 1 });
       // 欢迎页
       const toChat = eio(P(t, 13.65, 14.2));
       vis('wel', t < 14.2); vis('chat', t > 13.6);
@@ -592,7 +617,7 @@ function render(t) {
       let shown = false;
       for (const [a, x, y] of [[11.55, 201, 790], [12.55, 201, 790], [16.75, 360, 820], [23.75, 180, 0], [27.9, 38, 82], [29.3, 150, 125], [30.55, 150, 185]]) {
         let yy = y;
-        if (a === 23.75) { const r = $('apprOk').getBoundingClientRect(), s = $('screen').getBoundingClientRect(); yy = r.top - s.top + r.height / 2; }
+        if (a === 23.75) { const r = $('apprOk').getBoundingClientRect(), s = $('screen').getBoundingClientRect(); yy = (r.top - s.top + r.height / 2) / phoneScale; }
         if (tap(t, a, x, yy)) { shown = true; break; }
       }
       if (!shown) $('tap').style.opacity = 0;

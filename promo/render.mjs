@@ -1,5 +1,5 @@
 // 逐帧渲染 index.html → 视频（无声）+ 导出音效提示表 cues.json
-// 用法：node render.mjs <out.mp4> [fps]    或  node render.mjs --stills 3,15,23 <dir>
+// 用法：node render.mjs [--portrait] <out.mp4> [fps]    或  node render.mjs --stills 3,15,23 <dir>
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
@@ -9,11 +9,13 @@ import path from 'node:path';
 const { chromium } = createRequire(import.meta.url)('playwright'); // 全局安装时配合 NODE_PATH
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ffmpeg = process.env.FFMPEG || 'ffmpeg';
-const args = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const portrait = argv.includes('--portrait');
+const args = argv.filter(a => a !== '--portrait');
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-await page.goto('file://' + path.join(here, 'index.html'));
+const page = await browser.newPage({ viewport: portrait ? { width: 1080, height: 1920 } : { width: 1920, height: 1080 } });
+await page.goto('file://' + path.join(here, 'index.html') + (portrait ? '?portrait' : ''));
 await page.evaluate(() => window.ready);
 const meta = await page.evaluate(() => ({ dur: window.DUR, cues: window.CUES, marks: window.MARKS }));
 writeFileSync(path.join(here, 'cues.json'), JSON.stringify(meta, null, 1));
