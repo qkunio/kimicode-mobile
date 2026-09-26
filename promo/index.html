@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <title>Kimi Code Mobile 推广片</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&family=Inter:wght@500;700;900&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@500;700&family=JetBrains+Mono:wght@500;700&family=Inter:wght@500;700;900&display=block" rel="stylesheet">
 <style>
 :root{
-  --kimi:#1783FF; --kimi2:#5AA8FF; --bg:#05070D; --ink:#0B0D12;
+  --kimi:#1783FF; --kimi2:#1783FF; --bg:#FAFBFD; --sub:#5B6472; --serif:"Noto Serif SC",serif; --ink:#0B0D12;
   --fill:rgba(0,0,0,.035); --line:rgba(0,0,0,.1); --muted:#8A8F98;
   --add:#16C456; --del:#FF4756;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);
-  font-family:"Inter","Noto Sans SC",system-ui,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
+  font-family:"Inter","Noto Sans SC",system-ui,sans-serif;color:#0B0D12;-webkit-font-smoothing:antialiased}
 .mono{font-family:"JetBrains Mono",monospace}
 #stage{position:absolute;inset:0;overflow:hidden}
 .abs{position:absolute}
@@ -21,20 +21,20 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);
 
 /* 背景 */
 #bg{position:absolute;inset:0;background:var(--bg)}
-.glow{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55}
+.glow{position:absolute;border-radius:50%;filter:blur(110px);opacity:.13}
 #g1{width:900px;height:900px;background:radial-gradient(circle,#1783FF 0%,transparent 65%)}
-#g2{width:700px;height:700px;background:radial-gradient(circle,#6B5BFF 0%,transparent 65%)}
+#g2{width:700px;height:700px;background:radial-gradient(circle,#7FB6FF 0%,transparent 65%)}
 #grid{position:absolute;inset:-100px;background-image:
-  linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
-  linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  linear-gradient(rgba(10,30,60,.035) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(10,30,60,.035) 1px,transparent 1px);
   background-size:64px 64px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%)}
-#vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.6) 100%);pointer-events:none}
+#vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 60%,rgba(20,40,80,.05) 100%);pointer-events:none}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 
 /* 场景 1：终端 */
-#term{left:50%;top:50%;width:980px;height:520px;margin:-290px 0 0 -490px;border-radius:22px;
+#term{left:50%;top:50%;width:980px;height:520px;margin:-290px 0 0 -490px;border-radius:22px;color:#E6EAF0;
   background:rgba(14,17,26,.92);border:1px solid rgba(255,255,255,.1);
-  box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(23,131,255,.08);overflow:hidden}
+  box-shadow:0 40px 100px rgba(20,40,80,.22);overflow:hidden}
 #term .bar{height:52px;display:flex;align-items:center;gap:10px;padding:0 22px;border-bottom:1px solid rgba(255,255,255,.06)}
 #term .dot{width:14px;height:14px;border-radius:50%}
 #term .ttl{flex:1;text-align:center;color:#6b7280;font-size:17px;margin-right:60px}
@@ -44,30 +44,30 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);
 .tl{opacity:0}
 .ok{color:#16C456}
 .dim{color:#6b7280}
-#t1sub{left:0;right:0;top:872px;text-align:center;font-size:40px;font-weight:700;letter-spacing:2px}
+#t1sub{left:0;right:0;top:872px;text-align:center;font-size:40px;font-weight:500;letter-spacing:4px;font-family:var(--serif)}
 
 /* 场景 2 / 8：Logo */
-.face{position:absolute;background:var(--kimi);border-radius:9.5%/14%;box-shadow:0 30px 90px rgba(23,131,255,.45)}
+.face{position:absolute;background:var(--kimi);border-radius:9.5%/14%;box-shadow:0 30px 80px rgba(23,131,255,.28)}
 .face i{position:absolute;background:#fff;top:18%;width:12.5%;height:28%}
 #logo{left:50%;top:0;width:0;height:0}
 #logoFace{width:300px;height:200px;left:-150px;top:250px}
-#logoTitle{left:-800px;width:1600px;top:505px;text-align:center;font-size:118px;font-weight:900;letter-spacing:-2px;white-space:nowrap}
+#logoTitle{left:-800px;width:1600px;top:505px;text-align:center;font-size:118px;font-weight:800;letter-spacing:-2px;white-space:nowrap}
 #logoTitle b{color:var(--kimi)}
-#logoSub{left:-800px;width:1600px;top:680px;text-align:center;font-size:44px;font-weight:500;color:#C9D1DD;letter-spacing:4px}
+#logoSub{left:-800px;width:1600px;top:680px;text-align:center;font-size:44px;font-weight:500;color:var(--sub);letter-spacing:6px;font-family:var(--serif)}
 .shine{background:linear-gradient(100deg,#fff 40%,#9fd0ff 50%,#fff 60%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
 
 /* 左侧文案 */
 .cap{position:absolute;left:170px;top:300px;width:820px}
-.cap .k{font-size:26px;font-weight:700;color:var(--kimi2);letter-spacing:6px;margin-bottom:26px}
-.cap .h{font-size:74px;font-weight:900;line-height:1.18;letter-spacing:-1px}
+.cap .k{font-size:24px;font-weight:500;color:var(--kimi);letter-spacing:8px;margin-bottom:26px}
+.cap .h{font-size:72px;font-weight:700;line-height:1.3;letter-spacing:1px;font-family:var(--serif)}
 .cap .h b{color:var(--kimi2)}
-.cap .s{margin-top:32px;font-size:32px;line-height:1.6;color:#AEB6C2;font-weight:500}
+.cap .s{margin-top:32px;font-size:30px;line-height:1.75;color:var(--sub);font-weight:400}
 .pill{display:inline-flex;align-items:center;gap:10px;margin-top:40px;padding:12px 24px;border-radius:999px;
-  background:rgba(23,131,255,.14);border:1px solid rgba(90,168,255,.35);color:#cfe4ff;font-size:24px;font-weight:700;margin-right:14px}
+  background:rgba(23,131,255,.06);border:1px solid rgba(23,131,255,.22);color:#1783FF;font-size:23px;font-weight:500;letter-spacing:1px;margin-right:14px}
 
 /* 手机 */
 #phone{left:1128px;top:91px;width:426px;height:898px;border-radius:66px;background:#1b1d22;
-  box-shadow:0 0 0 2px #3a3d44,0 60px 140px rgba(0,0,0,.7),0 0 120px rgba(23,131,255,.25);padding:12px}
+  box-shadow:0 0 0 2px #cfd3da,0 50px 110px rgba(20,40,80,.22),0 10px 30px rgba(20,40,80,.08);padding:12px}
 #screen{position:relative;width:402px;height:874px;border-radius:55px;background:#fff;overflow:hidden;color:var(--ink)}
 .island{position:absolute;left:50%;top:11px;width:124px;height:36px;margin-left:-62px;background:#000;border-radius:20px;z-index:50}
 .sbar{position:absolute;left:0;right:0;top:0;height:54px;z-index:40;font-size:17px;font-weight:700;color:#000;display:flex;align-items:center;padding:6px 34px 0 50px}
@@ -158,24 +158,24 @@ code{font-family:"JetBrains Mono",monospace;font-size:14px;background:rgba(0,0,0
 
 /* 功能墙 */
 #feat{left:0;right:0;top:0;bottom:0}
-#featH{left:0;right:0;top:150px;text-align:center;font-size:64px;font-weight:900}
+#featH{left:0;right:0;top:150px;text-align:center;font-size:62px;font-weight:700;font-family:var(--serif);letter-spacing:1px}
 #featH b{color:var(--kimi2)}
 .tile{position:absolute;width:500px;height:210px;border-radius:32px;padding:34px 36px;
-  background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 30px 80px rgba(0,0,0,.35);backdrop-filter:blur(20px)}
-.tile .ic{width:56px;height:56px;border-radius:16px;background:rgba(23,131,255,.2);display:flex;align-items:center;justify-content:center}
-.tile .tt{position:absolute;left:112px;top:36px;font-size:34px;font-weight:900}
-.tile .ds{margin-top:26px;font-size:24px;line-height:1.5;color:#AEB6C2;font-weight:500}
+  background:#fff;border:1px solid rgba(10,30,60,.06);
+  box-shadow:0 24px 60px rgba(20,40,80,.08),0 2px 8px rgba(20,40,80,.04)}
+.tile .ic{width:56px;height:56px;border-radius:16px;background:rgba(23,131,255,.08);display:flex;align-items:center;justify-content:center}
+.tile .tt{position:absolute;left:112px;top:40px;font-size:32px;font-weight:700}
+.tile .ds{margin-top:26px;font-size:24px;line-height:1.6;color:var(--sub);font-weight:400}
 
 /* 片尾 */
 #end{left:0;right:0;top:0;bottom:0}
 #endFace{width:240px;height:160px;left:840px;top:190px}
-#endTitle{left:0;right:0;top:400px;text-align:center;font-size:110px;font-weight:900;letter-spacing:-2px}
+#endTitle{left:0;right:0;top:400px;text-align:center;font-size:110px;font-weight:800;letter-spacing:-2px}
 #endTitle b{color:var(--kimi)}
-#endSub{left:0;right:0;top:560px;text-align:center;font-size:44px;font-weight:500;color:#C9D1DD;letter-spacing:3px}
+#endSub{left:0;right:0;top:560px;text-align:center;font-size:44px;font-weight:500;color:var(--sub);letter-spacing:5px;font-family:var(--serif)}
 #endPills{left:0;right:0;top:672px;text-align:center}
 #endPills .pill{margin:0 8px}
-#endUrl{left:0;right:0;top:830px;text-align:center;font-size:28px;color:#8b95a5;letter-spacing:1px}
+#endUrl{left:0;right:0;top:830px;text-align:center;font-size:26px;color:#9aa3b0;letter-spacing:1px}
 #preload{position:absolute;left:-9999px;top:0;opacity:.01}
 
 /* ---------- 竖屏 9:16（?portrait） ---------- */
@@ -327,7 +327,7 @@ html.portrait,html.portrait body{width:1080px;height:1920px}
   <div id="tap"></div>
   <div id="vignette"></div>
   <div id="flash"></div>
-  <div id="preload"></div>
+  <div id="preload"></div><div id="preload2" style="position:absolute;left:-9999px;opacity:.01;font-family:'Noto Serif SC';font-weight:700"></div><div id="preload3" style="position:absolute;left:-9999px;opacity:.01;font-family:'Noto Serif SC';font-weight:500"></div>
 </div>
 
 <script>
@@ -384,7 +384,7 @@ FEATS.forEach(([ic, t, d], i) => {
   el.className = 'tile'; el.id = 'tile' + i;
   el.style.left = (PORTRAIT ? 80 + (i % 2) * 480 : 170 + (i % 3) * 540) + 'px';
   el.style.top = (PORTRAIT ? 560 + Math.floor(i / 2) * 290 : 330 + Math.floor(i / 3) * 250) + 'px';
-  el.innerHTML = `<div class="ic">${I[ic]('#5AA8FF')}</div><div class="tt">${t}</div><div class="ds">${d}</div>`;
+  el.innerHTML = `<div class="ic">${I[ic]('#1783FF')}</div><div class="tt">${t}</div><div class="ds">${d}</div>`;
   $('feat').appendChild(el);
 });
 
@@ -490,7 +490,7 @@ if (PORTRAIT) $('featH').innerHTML = '网页端能做的，<br>现在都在<b>�
 function render(t) {
   // 背景光晕缓慢漂移
   css('g1', { left: (PORTRAIT ? 90 : 0) + (-150 + Math.sin(t * .25) * 120 + (t > 8.5 && t < 32.5 ? (PORTRAIT ? 0 : 700) : 0) * eio(P(t, 8, 9.5)) * (1 - eio(P(t, 32, 33.5)))) + 'px', top: (200 + Math.cos(t * .2) * 80) + 'px' });
-  css('g2', { left: (PORTRAIT ? -600 : 0) + (1250 + Math.cos(t * .22) * 140) + 'px', top: (-250 + Math.sin(t * .3) * 90) + 'px', opacity: .35 });
+  css('g2', { left: (PORTRAIT ? -600 : 0) + (1250 + Math.cos(t * .22) * 140) + 'px', top: (-250 + Math.sin(t * .3) * 90) + 'px', opacity: .16 });
   css('grid', { transform: `translateY(${(t * 12) % 64}px)` });
 
   // 闪白
@@ -518,7 +518,7 @@ function render(t) {
       css('logoFace', { transform: `scale(${pf * (1 - pout * .4)}) rotate(${(1 - P(t, 4.35, 4.95)) * -12}deg)`, opacity: 1 - pout });
       face($('logoFace'), t, [[5.2, 5.9]], [6.2, 7.3]);
       const pt = eo(P(t, 4.8, 5.5));
-      css('logoTitle', { opacity: pt * (1 - pout), transform: `translateY(${(1 - pt) * 50 - pout * 30}px)`, letterSpacing: lerp(18, -2, pt) + 'px' });
+      css('logoTitle', { opacity: pt * (1 - pout), transform: `translateY(${(1 - pt) * 50 - pout * 30}px)`, letterSpacing: lerp(16, -1, pt) + 'px' });
       const ps = eo(P(t, 5.6, 6.2));
       css('logoSub', { opacity: ps * (1 - pout), transform: `translateY(${(1 - ps) * 30 - pout * 30}px)` });
     }
@@ -644,7 +644,7 @@ function render(t) {
       css('endFace', { transform: `scale(${pf})` });
       face($('endFace'), t, [[38.6, 39.3]], [39.8, 41.2]);
       const pt = eo(P(t, 37.8, 38.5)); css('endTitle', { opacity: pt, transform: `translateY(${(1 - pt) * 40}px)` });
-      $('endTitle').style.letterSpacing = lerp(14, -2, pt) + 'px';
+      $('endTitle').style.letterSpacing = lerp(14, -1, pt) + 'px';
       const ps = eo(P(t, 38.5, 39.1)); css('endSub', { opacity: ps, transform: `translateY(${(1 - ps) * 30}px)` });
       document.querySelectorAll('#endPills .pill').forEach((e, i) => { const q = eo(P(t, 39.2 + i * .15, 39.7 + i * .15)); css(e, { opacity: q, transform: `translateY(${(1 - q) * 20}px)` }); });
       const pu = eo(P(t, 40.2, 40.7)); css('endUrl', { opacity: pu });
@@ -664,6 +664,7 @@ function measure() {
 }
 $('preload').textContent = [W1, W2, W3, MSG, TX1, TX2, '正在登录…登录 Kimi 账号我已完成思考中了秒1 42 passed', FEATS.map(f => f[1] + f[2]).join('')].join('');
 
+{ const all = document.body.innerText + $('preload').textContent + '网页端能做的，现在都在手机上'; $('preload2').textContent = all; $('preload3').textContent = all; }
 window.DUR = DUR; window.CUES = CUES; window.MARKS = MARKS;
 window.ready = document.fonts.ready.then(() => new Promise(r => setTimeout(r, 300))).then(() => { measure(); render(0); return true; });
 window.seek = t => render(t);

@@ -128,7 +128,7 @@ def s_blip():
     return norm(out, 0.45)
 
 
-def s_whoosh(dur=0.75, f0=300, f1=6000, rise=0.6):
+def s_whoosh(dur=0.75, f0=300, f1=4500, rise=0.6):
     t = t_axis(dur)
     x = moving_lp(noise(dur), f0, f1)
     x = filt(x, "high", 150)
@@ -137,11 +137,11 @@ def s_whoosh(dur=0.75, f0=300, f1=6000, rise=0.6):
 
 
 def s_swoosh():
-    return s_whoosh(0.4, 600, 7000, 0.45) * 0.7
+    return s_whoosh(0.4, 500, 5000, 0.45) * 0.45
 
 
 def s_swoosh_up():
-    return s_whoosh(0.9, 200, 5000, 0.7) * 0.8
+    return s_whoosh(0.9, 200, 4000, 0.7) * 0.5
 
 
 def s_impact():
@@ -150,7 +150,7 @@ def s_impact():
     sub = tone(42, d) * env(d, 0.01, 0.7) * 0.6
     crack = filt(noise(d), "band", (800, 8000)) * env(d, 0.0005, 0.03)
     tail = filt(noise(d), "low", 1200) * env(d, 0.01, 0.5) * 0.25
-    return norm(np.tanh(1.6 * (boom + sub + crack * 0.8 + tail)), 0.95)
+    return norm(boom * 0.7 + sub + crack * 0.15 + tail * 0.6, 0.6)
 
 
 def s_shimmer():
@@ -224,40 +224,68 @@ def s_riser():
 SFX = {k[2:]: v for k, v in globals().items() if k.startswith("s_")}
 
 
-# ---------- 背景音乐 ----------
-BPM = 120
-BEAT = 60 / BPM
-
-
-def kick():
-    d = 0.4
-    return np.tanh(2 * (sweep(150, 45, d) * env(d, 0.001, 0.12) + filt(noise(d), "high", 4000) * env(d, 0.0003, 0.002) * 0.3))
-
-
-def hat(open_=False):
-    d = 0.2 if open_ else 0.05
-    return filt(noise(d), "high", 7000) * env(d, 0.0005, 0.06 if open_ else 0.012)
-
-
-def clap():
-    d = 0.25
-    n = filt(noise(d), "band", (900, 5000)) * env(d, 0.001, 0.07)
-    return n + tone(190, d) * env(d, 0.001, 0.03) * 0.4
-
-
-def saw(freq, dur, voices=5, spread=0.012):
-    t = t_axis(dur)
+# ---------- 背景音乐：钢琴独奏 ----------
+def piano(m, dur, vel):
+    """加法合成的钢琴音：带琴弦刚度的非谐泛音、高次泛音衰减更快、两段式衰减、
+    同音三根弦微失谐（产生钢琴特有的"呼吸"）、琴槌击弦噪声。dur 是踩着踏板保持的时长。"""
+    f = midi(m)
+    ring = float(np.clip(5.5 * (261.6 / f) ** 0.55, 1.2, 9.0))  # 低音持续更久
+    length = min(dur, ring * 1.2) + 0.35
+    t = t_axis(length)
+    B = 0.00035 * (f / 261.6) ** 0.5
     out = np.zeros_like(t)
-    for v in range(voices):
-        det = 1 + spread * (v - (voices - 1) / 2) / voices
-        ph = rng.uniform(0, 1)
-        out += 2 * ((freq * det * t + ph) % 1) - 1
-    return out / voices
+    strings = (-0.9, 0.0, 0.8) if m > 45 else (-0.5, 0.5)
+    for k in range(1, 18):
+        fk = f * k * np.sqrt(1 + B * k * k)
+        if fk > 14000:
+            break
+        amp = (1 / k ** 1.15) * np.exp(-(k - 1) * (0.55 - 0.4 * vel))  # 越用力越亮
+        if k == 1:
+            amp *= 0.8
+        tk = ring / (1 + 0.45 * (k - 1))
+        decay = 0.65 * np.exp(-t / (tk * 0.22)) + 0.35 * np.exp(-t / tk)
+        part = np.zeros_like(t)
+        for c in strings:
+            part += np.sin(2 * np.pi * fk * (1 + c / 1200 * 0.9) * t + rng.uniform(0, 6.28))
+        out += amp * decay * part / len(strings)
+    hammer = filt(noise(0.03), "band", (min(f * 2, 6000), min(f * 8, 16000))) * env(0.03, 0.0005, 0.004)
+    out[: len(hammer)] += hammer * 0.05 * vel
+    out *= np.clip(t / 0.0015, 0, 1)
+    rel = np.clip((dur + 0.3 - t) / 0.3, 0, 1)  # 抬踏板：0.3s 内制音
+    return out * rel * vel ** 1.3
 
 
-# 和弦（MIDI），每小节一个：F – G – Am – Em（C 大调的明亮走向）
-CHORDS = [(53, 57, 60, 64), (55, 59, 62, 67), (57, 60, 64, 69), (52, 55, 59, 64)]
-ROOTS = [41, 43, 45, 40]
+_pcache = {}
+
+
+def piano_c(m, dur, vel):
+    key = (m, round(dur, 2), round(vel, 2))
+    if key not in _pcache:
+        _pcache[key] = piano(m, dur, vel)
+    return _pcache[key]
+
+
+BPM = 87  # 让第 12 小节的强拍恰好落在片尾那一下（4.35 + 12 × 4 拍 ≈ 37.45s）
+BEAT = 60 / BPM
+MAJ, MIN = (0, 7, 12, 16, 19), (0, 7, 12, 15, 19)
+# 12 小节：F G Em Am | F G C C | F Em Dm G  → 片尾落到 C
+BARS = [(41, MAJ), (43, MAJ), (40, MIN), (45, MIN), (41, MAJ), (43, MAJ), (36, MAJ), (36, MAJ),
+        (41, MAJ), (40, MIN), (38, MIN), (43, MAJ)]
+# 右手旋律：(拍内起点, MIDI, 拍数)
+MELODY = [
+    [(0, 81, 2), (2, 79, 1), (3, 77, 1)],
+    [(0, 79, 1.5), (1.5, 74, .5), (2, 76, 2)],
+    [(0, 79, 2), (2, 83, 1), (3, 81, 1)],
+    [(0, 76, 3), (3, 72, 1)],
+    [(0, 81, 1), (1, 84, 1), (2, 83, 1), (3, 81, 1)],
+    [(0, 79, 2), (2, 74, 1), (3, 79, 1)],
+    [(0, 76, 1.5), (1.5, 79, .5), (2, 84, 2)],
+    [(0, 84, 3), (3, 83, .5), (3.5, 81, .5)],
+    [(0, 84, 2), (2, 81, 1), (3, 79, 1)],
+    [(0, 79, 2), (2, 83, 2)],
+    [(0, 81, 1), (1, 77, 1), (2, 74, 1), (3, 77, 1)],
+    [(0, 79, 2), (2, 83, 1), (3, 86, 1)],
+]
 
 
 def music(dur, marks):
@@ -266,92 +294,59 @@ def music(dur, marks):
     R = np.zeros(n)
     drop, outro = marks["drop"], marks["outroHit"]
 
-    def add(buf, x, at, gain=1.0):
-        o = int(at * SR)
-        if o >= n or o + len(x) <= 0:
-            return
-        s = max(0, -o)
-        e = min(len(x), n - o)
-        buf[o + s:o + e] += x[s:e] * gain
+    def note(at, m, length, vel):
+        at += rng.normal(0, 0.006)  # 人手的微小不齐
+        vel = float(np.clip(vel * rng.uniform(0.93, 1.05), 0.05, 1))
+        x = piano_c(m, length, round(vel, 2))
+        o = max(0, int(at * SR))
+        e = min(n, o + len(x))
+        pan = np.clip((m - 64) / 48, -0.45, 0.45)  # 低音偏左、高音偏右，像坐在琴凳上听
+        L[o:e] += x[: e - o] * (1 - max(0, pan))
+        R[o:e] += x[: e - o] * (1 + min(0, pan))
 
-    def both(x, at, g=1.0, pan=0.0):
-        add(L, x, at, g * (1 - max(0, pan)))
-        add(R, x, at, g * (1 + min(0, pan)))
-
-    def level(t):
-        """各段强度：logo 段全开，手机演示段收一点给音效让位，功能墙再推上去。"""
-        if t < drop:
-            return 0.0
+    def dyn(t):
+        """力度：logo 段舒展，演示段收着给音效让位，功能墙再推上去。"""
         if t < 8.5:
-            return 1.0
+            return 0.8
         if t < 32.4:
-            return 0.7
-        if t < outro:
-            return 0.95
-        return 0.0
+            return 0.55
+        return 0.75
 
-    # 前奏：低频铺底 + 渐强
-    intro = np.zeros(int(drop * SR))
-    for f in (45, 52, 57):
-        intro += filt(saw(midi(f), drop, 3), "low", 900)
-    ti = t_axis(drop)
-    intro *= (ti / drop) ** 1.5 * 0.18
-    both(intro, 0)
-    both(s_whoosh(1.0, 200, 9000, 0.92) * 0.35, drop - 0.95)
+    # 前奏：几颗散落的高音，像在试音
+    for at, m, ln, v in [(0.15, 45, 4.2, .45), (0.2, 64, 3.5, .35), (0.9, 76, 2.5, .38), (1.75, 79, 2.2, .34),
+                         (2.55, 74, 2.0, .33), (3.3, 72, 1.8, .32), (3.8, 71, 0.8, .3)]:
+        note(at, m, ln, v)
 
-    # 主体循环
     bar = BEAT * 4
-    nbars = int(np.ceil((outro - drop) / bar))
-    for b in range(nbars):
+    for b, (root, iv) in enumerate(BARS):
         t0 = drop + b * bar
-        ci = b % 4
-        lv = level(t0 + 0.01)
-        if lv == 0:
-            continue
-        # pad：超锯齿 + 低通 + 侧链感
-        pd = bar + 0.05
-        pad = np.zeros(int(pd * SR))
-        for m in CHORDS[ci]:
-            pad += saw(midi(m + 12), pd, 5, 0.018)
-        pad = filt(pad, "low", 2200)
-        tp = t_axis(pd)
-        duck = 1 - 0.55 * np.exp(-((tp % BEAT) / 0.12))
-        pad *= duck * np.clip(tp / 0.08, 0, 1) * np.clip((pd - tp) / 0.05, 0, 1)
-        both(pad * 0.075 * lv, t0, pan=-0.15)
-        both(pad * 0.075 * lv, t0 + 0.012, pan=0.15)
-        for k in range(4):
-            tb = t0 + k * BEAT
-            if tb >= outro:
+        d = dyn(t0 + 0.01)
+        # 左手：分解和弦八分音符，踩着踏板到小节末
+        pattern = (0, 1, 2, 3, 4, 3, 2, 1)
+        for k, idx in enumerate(pattern):
+            at = t0 + k * BEAT / 2
+            if at >= outro - 0.05:
                 break
-            both(kick() * 0.55 * lv, tb)
-            both(hat() * 0.12 * lv, tb + BEAT / 2, pan=0.3)
-            if k in (1, 3):
-                both(clap() * 0.22 * lv, tb, pan=-0.05)
-            # bass：八分音符根音
-            for h in (0, 1):
-                bd = BEAT / 2 - 0.01
-                bs = filt(saw(midi(ROOTS[ci]), bd, 2, 0.004), "low", 420) * env(bd, 0.004, 0.25)
-                both(bs * 0.32 * lv, tb + h * BEAT / 2)
-            # 琶音拨弦：十六分
-            for s in range(4):
-                idx = (k * 4 + s) % 8
-                seq = [0, 2, 1, 3, 2, 1, 3, 2]
-                note = CHORDS[ci][seq[idx]] + 24
-                pl = bell(midi(note), 0.35, 0.3) * 0.5
-                both(pl * 0.14 * lv, tb + s * BEAT / 4, pan=0.35 if s % 2 else -0.35)
+            v = (0.62 if k == 0 else 0.42 if k % 2 == 0 else 0.36) * d
+            note(at, root + iv[idx], t0 + bar - at + 0.15, v)
+        # 右手旋律；功能墙段加上低八度重叠，更饱满
+        for beat, m, ln in MELODY[b]:
+            at = t0 + beat * BEAT
+            if at >= outro - 0.05:
+                continue
+            note(at, m, ln * BEAT + 0.25, 0.72 * d)
+            if b >= 10:
+                note(at + 0.01, m - 12, ln * BEAT + 0.25, 0.45 * d)
+        # logo 那一下：第一小节加一个厚和弦
+        if b == 0:
+            for m in (53, 57, 60, 64, 69):
+                note(t0 + 0.02, m, bar, 0.5)
 
-    # 功能墙前的空拍：留 0.6s 给 riser
-    # 片尾：大和弦延音
-    od = dur - outro
-    tail = np.zeros(int(od * SR))
-    for m in (41, 53, 60, 64, 67, 72, 76):
-        tail += saw(midi(m), od, 5, 0.02) * (0.5 if m < 50 else 1)
-    tail = filt(tail, "low", 2600)
-    to = t_axis(od)
-    tail *= np.clip(to / 0.02, 0, 1) * np.exp(-to / 2.6)
-    both(tail * 0.11, outro)
-    for i, m in enumerate((72, 76, 79, 84, 88)):
-        both(bell(midi(m), 2.5, 0.4) * 0.12, outro + 0.8 + i * 0.25, pan=(-0.4 + i * 0.2))
+    # 片尾：C 大九和弦从低到高琶音展开，长踏板，最后几颗高音
+    for i, m in enumerate((36, 43, 48, 52, 55, 59, 62, 64, 67, 72, 76, 79)):
+        note(outro + i * 0.045, m, dur - outro, 0.78 if i < 3 else 0.6)
+    for i, m in enumerate((84, 88, 91, 96)):
+        note(outro + 1.4 + i * 0.32, m, 2.5, 0.35)
 
     return L, R
 
@@ -385,14 +380,14 @@ def main():
     L, R = reverb(L, 1.0, 0.18), reverb(R, 1.05, 0.18)
 
     mL, mR = music(dur, meta["marks"])
-    mL, mR = reverb(mL, 1.6, 0.25), reverb(mR, 1.7, 0.25)
+    mL, mR = reverb(mL, 2.6, 0.32), reverb(mR, 2.7, 0.32)
 
     mixL = L + mL * 0.8
     mixR = R + mR * 0.8
     # 结尾淡出
     fade = np.clip((dur - t_axis(dur)) / 0.9, 0, 1)
     mix = np.stack([mixL, mixR], 1) * fade[:, None]
-    mix = np.tanh(mix * 1.1)
+    mix = np.tanh(mix * 0.9)
     mix = mix / np.max(np.abs(mix)) * 0.89  # ≈ -1 dBFS
     pcm = (mix * 32767).astype("<i2")
     with wave.open(out, "wb") as w:
