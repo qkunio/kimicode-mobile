@@ -2,7 +2,7 @@ import SwiftUI
 
 // 对话流的各个部件，结构与交互对照官方网页端（ChatPane / TurnFold / ActivityRun /
 // ThinkingBlock / ToolDisclosure / 各 *Tool / WorkingIndicator），字号走系统动态字体：
-//   正文 .body，工具行 / 思考 / 折叠头 .subheadline，时间等元信息 .caption。
+//   正文 .body，工具行 / 思考 / 折叠头 / 时间 .subheadline，错误等元信息 .caption。
 
 /// 展开 / 收起的状态按 id 存在这里（官方存在 historyState 里），滚出屏幕再回来不丢。
 @MainActor
@@ -279,7 +279,7 @@ struct MessageTime: View {
 
     var body: some View {
         Text(Self.format(date))
-            .font(.caption)
+            .font(.subheadline)
             .foregroundStyle(.secondary)
             .monospacedDigit()
     }

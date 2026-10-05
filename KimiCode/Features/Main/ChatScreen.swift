@@ -126,8 +126,6 @@ private struct ChatContent: View {
     /// 停在底部时新内容自动跟随（官方 isFollowing）；往上翻了就不打扰。
     @State private var isFollowing = true
     @State private var scrollPosition = ScrollPosition(edge: .bottom)
-    /// 离底部超过一屏的一半就显示「回到底部」按钮。
-    @State private var showsJumpToBottom = false
 
     var body: some View {
         Group {
@@ -164,11 +162,6 @@ private struct ChatContent: View {
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentInsets.bottom } action: { old, new in
                 guard new > old, isFollowing else { return }
                 scrollPosition.scrollTo(edge: .bottom)
-            }
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentSize.height - geometry.visibleRect.maxY > geometry.containerSize.height / 2
-            } action: { _, far in
-                withAnimation(.snappy(duration: 0.2)) { showsJumpToBottom = far }
             }
             .onScrollPhaseChange { _, phase, context in
                 switch phase {
@@ -220,14 +213,6 @@ private struct ChatContent: View {
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
-            // 按钮浮在底栏上方，不算进底栏高度：否则 iOS 26 的边缘毛玻璃会跟着往上扩一截。
-            .overlay(alignment: .top) {
-                if showsJumpToBottom {
-                    jumpToBottomButton
-                        .offset(y: -52)
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
-                }
-            }
         }
         .alert(
             "出错了",
@@ -261,24 +246,6 @@ private struct ChatContent: View {
             chat.restoredDraft = nil
         }
         .refreshable { await chat.reload() }
-    }
-
-    /// 一键回到底部，并恢复跟随新内容。
-    private var jumpToBottomButton: some View {
-        Button {
-            isFollowing = true
-            scrollToBottom()
-        } label: {
-            // 实底圆 + 细边，不用玻璃：玻璃会把后面的正文糊成一圈。
-            Image(systemName: "arrow.down")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 40, height: 40)
-                .background(Color(.systemBackground), in: .circle)
-                .overlay(Circle().stroke(Palette.line, lineWidth: 0.5))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("回到底部")
     }
 
     private var isAwaitingInteraction: Bool {
