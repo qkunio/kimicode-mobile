@@ -68,9 +68,11 @@ final class ChatModel {
         var failed = false
     }
 
-    private let client: KapClient
+    private let client: any KapServicing
     private let endpoint: Endpoint
     private let tokenProvider: @Sendable () async -> String?
+    /// 是否开 WS 事件流。体验模式的内存后端没有事件流，一轮还在跑时改成轮询。
+    private let liveUpdates: Bool
     private let onSessionCreated: (SessionSummary) -> Void
     private let onConfigChanged: (ComposerConfig) -> Void
 
@@ -97,9 +99,10 @@ final class ChatModel {
         session: SessionSummary?,
         workspace: Workspace?,
         config: ComposerConfig,
-        client: KapClient,
+        client: any KapServicing,
         endpoint: Endpoint,
         tokenProvider: @escaping @Sendable () async -> String?,
+        liveUpdates: Bool,
         onSessionCreated: @escaping (SessionSummary) -> Void,
         onConfigChanged: @escaping (ComposerConfig) -> Void
     ) {
@@ -109,6 +112,7 @@ final class ChatModel {
         self.client = client
         self.endpoint = endpoint
         self.tokenProvider = tokenProvider
+        self.liveUpdates = liveUpdates
         self.onSessionCreated = onSessionCreated
         self.onConfigChanged = onConfigChanged
     }
@@ -171,6 +175,11 @@ final class ChatModel {
     func start() async {
         guard let sessionID else { return }
         await reload()
+        // 没有事件流的后端（体验模式）：reload 拿到的就是全部，不用再连 WS。
+        guard liveUpdates else {
+            connectionState = .live
+            return
+        }
         guard streamTask == nil else { return }
         connectionState = .connecting
         let stream = EventStream(endpoint: endpoint, tokenProvider: tokenProvider)
@@ -212,6 +221,13 @@ final class ChatModel {
             apply(try await status)
             await refreshInteractions()
             errorMessage = nil
+
+            // 没有事件流的后端（体验模式）不会推增量：一轮还在跑时自己轮询，直到它落完。
+            if !liveUpdates, transcript.isTurnActive {
+                transcriptReload.schedule(after: .milliseconds(400)) { [weak self] in
+                    await self?.reload()
+                }
+            }
         } catch {
             // 切换会话/停止订阅取消的是读取任务，不代表出错。
             guard !Task.isCancelled, !(error is CancellationError),
@@ -378,6 +394,7 @@ final class ChatModel {
                 to: sessionID
             )
             holdsLocalConfig = false
+            scheduleOfflineReload()
         } catch {
             errorMessage = error.localizedDescription
             if let index = optimisticPrompts.firstIndex(where: { $0.id == optimistic.id }) {
@@ -407,6 +424,7 @@ final class ChatModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+        scheduleOfflineReload()
     }
 
     /// 撤销这条用户消息及其后的内容，原文放回输入框。
@@ -417,6 +435,15 @@ final class ChatModel {
             restoredDraft = entry.text
         } catch {
             errorMessage = error.localizedDescription
+        }
+        scheduleOfflineReload()
+    }
+
+    /// 没有事件流的后端（体验模式）：写操作后没有 WS 推送，手动补一次重拉（忙时会自动续轮询）。
+    private func scheduleOfflineReload() {
+        guard !liveUpdates else { return }
+        transcriptReload.schedule(after: .milliseconds(200)) { [weak self] in
+            await self?.reload()
         }
     }
 

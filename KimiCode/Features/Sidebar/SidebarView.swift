@@ -70,7 +70,7 @@ struct SidebarView: View {
         } message: { session in
             Text("将永久删除「\(session.displayTitle)」的全部对话记录，无法恢复。工作区里的文件和代码改动不受影响。")
         }
-        .alert("是否退出登录？", isPresented: $isConfirmingSignOut) {
+        .alert(app.isDemoMode ? "退出体验模式？" : "是否退出登录？", isPresented: $isConfirmingSignOut) {
             Button("取消", role: .cancel) {}
             Button("退出", role: .destructive) { app.signOut() }
         }
@@ -109,7 +109,7 @@ struct SidebarView: View {
                     .contentShape(.circle)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("退出登录")
+            .accessibilityLabel(app.isDemoMode ? "退出体验" : "退出登录")
         }
         .padding(.leading, 10)
         .padding(.trailing, 8)

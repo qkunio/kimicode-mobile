@@ -627,7 +627,7 @@ struct ThinkingBlockView: View {
                 withAnimation(.snappy(duration: 0.25)) { ui.set(key, !open) }
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "brain")
+                    Image(systemName: "lightbulb.max")
                         .font(.footnote)
                         .frame(width: 20)
                     Text(streaming ? "思考中…" : "思考过程")

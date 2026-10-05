@@ -27,6 +27,9 @@ final class AppModel {
     /// 主页正在看的对话。
     private(set) var chat: ChatModel?
 
+    /// 体验模式（App Store 审核用）：不登录、不连任何设备，数据全来自本地演示后端 `DemoClient`。
+    private(set) var isDemoMode = false
+
     var errorMessage: String?
 
     private static let lastDeviceKey = "kimi.lastDeviceID"
@@ -44,8 +47,9 @@ final class AppModel {
         }
     }
 
-    var client: KapClient? {
+    var client: (any KapServicing)? {
         guard let endpoint else { return nil }
+        if isDemoMode { return DemoClient(deviceID: endpoint.deviceID) }
         return KapClient(endpoint: endpoint, tokenProvider: tokenProvider)
     }
 
@@ -61,6 +65,13 @@ final class AppModel {
 
     // MARK: 启动
 
+    /// 从启动页「暂不登录，体验功能」进入体验模式。
+    /// **已登录时忽略**：登录状态下绝不使用演示后端。
+    func startDemo() {
+        guard !auth.isSignedIn, !isDemoMode else { return }
+        isDemoMode = true
+    }
+
     /// 登录后调用：拉设备 → 选上次那台（还在线的话）或第一台在线的 → 拉它的数据 → 打开一个新对话。
     func bootstrap() async {
         await refreshDevices()
@@ -71,6 +82,12 @@ final class AppModel {
     }
 
     func refreshDevices() async {
+        if isDemoMode {
+            devices = DemoClient.devices
+            isLoadingDevices = false
+            hasLoadedDevices = true
+            return
+        }
         guard auth.isSignedIn else { return }
         isLoadingDevices = true
         defer {
@@ -98,7 +115,10 @@ final class AppModel {
         models = []
         usage = nil
         endpoint = .remote(deviceID: device.deviceID, name: device.shortName)
-        UserDefaults.standard.set(device.deviceID, forKey: Self.lastDeviceKey)
+        // 体验模式不覆盖记住的设备：退出体验、真正登录后还要回到上次那台。
+        if !isDemoMode {
+            UserDefaults.standard.set(device.deviceID, forKey: Self.lastDeviceKey)
+        }
 
         await refreshDeviceData()
         if chat == nil, let workspace = workspaces.first {
@@ -243,6 +263,7 @@ final class AppModel {
             client: client,
             endpoint: endpoint,
             tokenProvider: tokenProvider,
+            liveUpdates: !isDemoMode,
             onSessionCreated: { [weak self] created in
                 self?.sessions.insert(created, at: 0)
             },
@@ -285,6 +306,7 @@ final class AppModel {
         usage = nil
         models = []
         hasLoadedDevices = false
+        isDemoMode = false
         auth.signOut()
     }
 

@@ -19,6 +19,13 @@ diff/文件卡片、看子 agent 与 task 面板、终端流）。
 4. 用户在网页里确认 → 后台轮询拿到 token → 浏览器自动收起 → 进入设备列表。
    用户自己关掉浏览器 → 立刻补问一次（可能刚确认完），否则回到「登录」按钮，授权码留着下次复用。
 
+「登录 Kimi 账号」按钮下方是「暂不登录，体验功能」（App Store 审核用）：不登录进入体验模式，
+数据全来自本地内存演示后端 `DemoClient`（不连 relay、不连任何电脑），发什么消息都回
+「看起来你输入了『xxx』，很高兴认识你，来和我交流体验吧！」。已登录时入口被忽略，
+登录状态绝不碰演示后端；侧栏退出按钮在体验模式下变成「退出体验模式」。
+体验模式没有 WS 事件流：`ChatModel` 此时不开 `EventStream`，忙时（transcript 显示一轮在跑）
+自己 400ms 轮询，发送/停止/撤销后也手动补一次重拉。
+
 ### 主界面（产品定稿，按手绘原型）
 
 ```
@@ -332,6 +339,8 @@ KimiCode/
 │  ├─ AuthStore.swift        device-code OAuth：预取 → 开浏览器 → 轮询 → 自动收起
 │  ├─ BrowserSession.swift   ASWebAuthenticationSession 包装（可由代码关闭）
 │  ├─ KapClient.swift        REST（+ RelayClient 拉设备列表）
+│  ├─ KapServicing.swift     会话后端协议：KapClient（真机）/ DemoClient（体验模式）
+│  ├─ DemoClient.swift       体验模式的内存演示后端（不连任何服务器）
 │  └─ EventStream.swift      WS actor：握手、游标续传、心跳、指数退避重连
 └─ Features/
    ├─ Root/                  AppModel（设备/侧栏数据/当前对话）、RootView、WelcomeView

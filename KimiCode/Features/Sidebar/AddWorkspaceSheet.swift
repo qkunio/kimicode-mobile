@@ -5,7 +5,7 @@ import SwiftUI
 ///   搜索框在当前目录下模糊搜子文件夹（最多 6 层、浏览 600 个目录、150 条结果），
 ///   底部「添加「当前目录名」文件夹」把当前目录加成工作区（`POST /workspaces {root}`）。
 struct AddWorkspaceSheet: View {
-    let client: KapClient
+    let client: any KapServicing
     let add: (String) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss

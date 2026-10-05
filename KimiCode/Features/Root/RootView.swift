@@ -5,13 +5,13 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if model.auth.isSignedIn {
+            if model.auth.isSignedIn || model.isDemoMode {
                 MainView()
                     .task { await model.bootstrap() }
             } else {
                 WelcomeView()
             }
         }
-        .animation(.default, value: model.auth.isSignedIn)
+        .animation(.default, value: model.auth.isSignedIn || model.isDemoMode)
     }
 }

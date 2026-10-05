@@ -89,6 +89,23 @@ struct WelcomeView: View {
                     .buttonStyle(.plain)
                     .disabled(isLogin && isWorking)
 
+                    if isLogin {
+                        // 不登录进体验模式：界面全功能可点，数据来自本地演示后端（App Store 审核用）。
+                        Button {
+                            model.startDemo()
+                        } label: {
+                            Text("暂不登录，体验功能")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(.primary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color(.tertiarySystemFill), in: .capsule)
+                                .contentShape(.capsule)
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    }
+
                 }
                 .opacity(hasFinishedIntro ? 1 : 0)
                 .allowsHitTesting(hasFinishedIntro)
