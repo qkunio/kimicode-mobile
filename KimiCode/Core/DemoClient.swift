@@ -14,7 +14,7 @@ struct DemoClient: Sendable {
     /// 演示设备：两台在线（可以互相切换），一台离线（置灰不可选）。
     static let devices: [RemoteDevice] = DemoData.decode("""
         [
-          {"device_id":"demo-macbook-pro","alias":"Demo-MacBook-Pro","platform":"darwin","status":"online"},
+          {"device_id":"demo-macbook-pro","alias":"Demo-MacBook","platform":"darwin","status":"online"},
           {"device_id":"demo-mac-studio","alias":"Demo-Mac-Studio","platform":"darwin","status":"online"},
           {"device_id":"demo-old-imac","alias":"Old-iMac","platform":"darwin","status":"offline"}
         ]
